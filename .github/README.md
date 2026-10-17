@@ -68,8 +68,9 @@ Qt's `bin` directory has to be on `PATH` to run the result.
 
 ## Configuration
 
-Configs are found in `%APPDATA%\quickshell` (or `$XDG_CONFIG_HOME/quickshell` if set), the same way
-`~/.config/quickshell` works on Linux. See the upstream
+Configs are searched for in `$XDG_CONFIG_HOME\quickshell` (if set), then
+`%USERPROFILE%\.config\quickshell`, then `%APPDATA%\quickshell`. The first one containing a config
+wins, the same way `~/.config/quickshell` works on Linux. See the upstream
 [documentation](https://quickshell.outfoxxed.me/docs/) for writing configs.
 
 ## License
