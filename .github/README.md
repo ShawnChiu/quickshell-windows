@@ -22,12 +22,12 @@ Early work in progress.
 
 Tested:
 - Loading QML shells, hot reload
-- `PanelWindow` placement
+- `PanelWindow` placement and reserving screen space through the Win32 AppBar API
 - `Process`, `IpcHandler`
 - `qs ipc`, `qs list`, `qs kill`, `qs -d` (daemonize)
 
 Implemented but not yet verified:
-- `PanelWindow` reserving screen space through the Win32 AppBar API
+- Multiple monitors and mixed DPI
 - `FloatingWindow`, `PopupWindow`, `FileView`, `Socket`
 
 Not available on Windows (disabled at build time):
@@ -41,6 +41,9 @@ Known limitations:
 - `quickshell.exe` is a console program, so starting it directly opens a console window.
   Use `qs -d` to run it in the background.
 - Reloading briefly removes and re-adds a panel's reserved space.
+- While another program running as administrator manages the taskbar (seen with yasb and
+  komorebi), Explorer rejects AppBar registration from non-elevated processes. Panels are still
+  placed but do not reserve space unless quickshell runs as administrator too.
 
 ## Building
 
