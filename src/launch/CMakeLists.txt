@@ -1,3 +1,15 @@
+if (WIN32)
+	# CLI11 is rarely packaged on windows. It is header only, so fetch it when it isn't installed.
+	include(FetchContent)
+	FetchContent_Declare(CLI11
+		GIT_REPOSITORY https://github.com/CLIUtils/CLI11.git
+		GIT_TAG v2.4.2
+		GIT_SHALLOW TRUE
+		FIND_PACKAGE_ARGS CONFIG
+	)
+	FetchContent_MakeAvailable(CLI11)
+endif()
+
 find_package(CLI11 CONFIG REQUIRED)
 
 qt_add_library(quickshell-launch STATIC
