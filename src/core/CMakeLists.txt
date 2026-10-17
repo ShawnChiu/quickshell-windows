@@ -46,6 +46,7 @@ qt_add_library(quickshell-core STATIC
 	toolsupport.cpp
 	streamreader.cpp
 	debuginfo.cpp
+	platform.cpp
 )
 
 qt_add_qml_module(quickshell-core

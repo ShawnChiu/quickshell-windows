@@ -1,7 +1,6 @@
 #include "toolsupport.hpp"
 #include <cerrno>
 
-#include <fcntl.h>
 #include <qcontainerfwd.h>
 #include <qdebug.h>
 #include <qdir.h>
@@ -14,6 +13,7 @@
 
 #include "logcat.hpp"
 #include "paths.hpp"
+#include "platform.hpp"
 #include "scan.hpp"
 
 namespace qs::core {
@@ -23,6 +23,14 @@ QS_LOGGING_CATEGORY(logTooling, "quickshell.tooling", QtWarningMsg);
 }
 
 bool QmlToolingSupport::updateTooling(const QDir& configRoot, QmlScanner& scanner) {
+#ifdef Q_OS_WIN
+	// The tooling vfs is built from file symlinks, which QFile::link creates as .lnk shortcuts
+	// on windows. qmlls can't follow those, so tooling support is disabled there.
+	Q_UNUSED(configRoot);
+	Q_UNUSED(scanner);
+	return false;
+#endif
+
 	auto* vfs = QsPaths::instance()->shellVfsDir();
 
 	if (!vfs) {
@@ -54,19 +62,13 @@ bool QmlToolingSupport::lockTooling() {
 		return false;
 	}
 
-	struct flock lock = {
-	    .l_type = F_WRLCK,
-	    .l_whence = SEEK_SET, // NOLINT (fcntl.h??)
-	    .l_start = 0,
-	    .l_len = 0,
-	    .l_pid = 0,
-	};
+	auto result = qs::platform::tryLockExclusive(file);
 
-	if (fcntl(file->handle(), F_SETLK, &lock) == 0) {
+	if (result == qs::platform::LockResult::Acquired) {
 		qCInfo(logTooling) << "Acquired tooling support lock";
 		QmlToolingSupport::toolingLock = file;
 		return true;
-	} else if (errno == EACCES || errno == EAGAIN) {
+	} else if (result == qs::platform::LockResult::Busy) {
 		qCInfo(logTooling) << "Tooling support locked by another instance";
 		return false;
 	} else {

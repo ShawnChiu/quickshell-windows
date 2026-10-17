@@ -3,7 +3,6 @@
 #include <cerrno>
 #include <cstdio>
 
-#include <fcntl.h>
 #include <qbytearrayview.h>
 #include <qcoreapplication.h>
 #include <qdatetime.h>
@@ -27,7 +26,6 @@
 #include <qthread.h>
 #include <qtmetamacros.h>
 #include <qtypes.h>
-#include <sys/mman.h>
 #ifdef __linux__
 #include <sys/sendfile.h>
 #include <sys/types.h>
@@ -35,12 +33,16 @@
 #ifdef __FreeBSD__
 #include <unistd.h>
 #endif
+#ifdef Q_OS_WIN
+#include <io.h>
+#endif
 
 #include "instanceinfo.hpp"
 #include "logcat.hpp"
 #include "logging_p.hpp"
 #include "logging_qtprivate.cpp" // NOLINT
 #include "paths.hpp"
+#include "platform.hpp"
 #include "ringbuf.hpp"
 
 QS_LOGGING_CATEGORY(logBare, "quickshell.bare");
@@ -75,7 +77,11 @@ bool copyFileData(int sourceFd, int destFd, qint64 size) {
 
 	while (remaining > 0) {
 		auto chunk = std::min(remaining, buffer.size());
+#ifdef Q_OS_WIN
+		auto r = _read(sourceFd, buffer.data(), static_cast<unsigned int>(chunk));
+#else
 		auto r = ::read(sourceFd, buffer.data(), chunk);
+#endif
 		if (r == -1) {
 			if (errno == EINTR) continue;
 			return false;
@@ -85,7 +91,15 @@ bool copyFileData(int sourceFd, int destFd, qint64 size) {
 		auto readBytes = static_cast<size_t>(r);
 		size_t written = 0;
 		while (written < readBytes) {
+#ifdef Q_OS_WIN
+			auto w = _write(
+			    destFd,
+			    buffer.data() + written,
+			    static_cast<unsigned int>(readBytes - written)
+			);
+#else
 			auto w = ::write(destFd, buffer.data() + written, readBytes - written);
+#endif
 			if (w == -1) {
 				if (errno == EINTR) continue;
 				return false;
@@ -375,14 +389,14 @@ CategoryFilter LogManager::getFilter(QLatin1StringView category) {
 }
 
 void ThreadLogging::init() {
-	auto logMfd = memfd_create("quickshell:logs", 0);
+	auto logMfd = platform::createAnonymousFile("quickshell:logs");
 
 	if (logMfd == -1) {
 		qCCritical(logLogging) << "Failed to create memfd for initial log storage"
 		                       << qt_error_string(-1);
 	}
 
-	auto dlogMfd = memfd_create("quickshell:detailedlogs", 0);
+	auto dlogMfd = platform::createAnonymousFile("quickshell:detailedlogs");
 
 	if (dlogMfd == -1) {
 		qCCritical(logLogging) << "Failed to create memfd for initial detailed log storage"
@@ -470,15 +484,7 @@ void ThreadLogging::initFs() {
 		delete detailedFile;
 		detailedFile = nullptr;
 	} else {
-		struct flock lock = {
-		    .l_type = F_WRLCK,
-		    .l_whence = SEEK_SET,
-		    .l_start = 0,
-		    .l_len = 0,
-		    .l_pid = 0,
-		};
-
-		if (fcntl(detailedFile->handle(), F_SETLK, &lock) != 0) { // NOLINT
+		if (platform::tryLockExclusive(detailedFile) != platform::LockResult::Acquired) {
 			qCWarning(logLogging) << "Unable to set lock marker on detailed log file. --follow from "
 			                         "other instances will not work.";
 		}
@@ -974,17 +980,7 @@ bool LogReader::continueReading() {
 }
 
 void LogFollower::FcntlWaitThread::run() {
-	struct flock lock = {
-	    .l_type = F_RDLCK, // won't block other read locks when we take it
-	    .l_whence = SEEK_SET,
-	    .l_start = 0,
-	    .l_len = 0,
-	    .l_pid = 0,
-	};
-
-	auto r = fcntl(this->follower->reader->file->handle(), F_SETLKW, &lock); // NOLINT
-
-	if (r != 0) {
+	if (!platform::waitLockShared(this->follower->reader->file)) {
 		qCWarning(logLogging).nospace()
 		    << "Failed to wait for write locks to be removed from log file with error code " << errno
 		    << ": " << qt_error_string();
