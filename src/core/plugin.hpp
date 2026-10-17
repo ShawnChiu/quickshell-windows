@@ -32,9 +32,21 @@ public:
 };
 
 // NOLINTBEGIN
+#if defined(_MSC_VER) && !defined(__clang__)
+// MSVC has no constructor attribute, so registration runs from a static object's constructor.
+#define QS_REGISTER_PLUGIN(clazz)                                                                  \
+	struct QsPluginRegistrar {                                                                       \
+		QsPluginRegistrar() {                                                                          \
+			static clazz plugin;                                                                         \
+			QsEnginePlugin::registerPlugin(plugin);                                                      \
+		}                                                                                              \
+	};                                                                                               \
+	[[maybe_unused]] const QsPluginRegistrar qsPluginRegistrar;
+#else
 #define QS_REGISTER_PLUGIN(clazz)                                                                  \
 	[[gnu::constructor]] void qsInitPlugin() {                                                       \
 		static clazz plugin;                                                                           \
 		QsEnginePlugin::registerPlugin(plugin);                                                        \
 	}
+#endif
 // NOLINTEND
