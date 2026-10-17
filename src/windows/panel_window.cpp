@@ -402,7 +402,8 @@ QRect WinPanelWindow::reserveAppBar(QRect screenGeometry, Qt::Edge edge, qint32 
 		if (!SHAppBarMessage(ABM_NEW, &data)) {
 			qCWarning(logPanel).nospace()
 			    << "Failed to register AppBar for " << this << " (error " << GetLastError()
-			    << "), the panel will not reserve screen space.";
+			    << "), the panel will not reserve screen space. This happens when another program "
+			       "running as administrator manages the taskbar.";
 			this->appBarFailedHwnd = reinterpret_cast<quintptr>(hwnd);
 			return screenGeometry;
 		}
