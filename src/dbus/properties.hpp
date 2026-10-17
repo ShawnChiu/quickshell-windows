@@ -122,7 +122,6 @@ template <template <typename, typename, auto, auto> class B, typename C, typenam
 struct BindableParams<B<C, T, O, S>> {
 	using Class = C;
 	using Type = T;
-	static constexpr size_t OFFSET = O;
 };
 
 template <typename Bindable>
