@@ -48,14 +48,23 @@ boption(BUILD_TESTING "Build tests (dev)" OFF)
 boption(ASAN "ASAN (dev)" OFF) # note: better output with gcc than clang
 boption(FRAME_POINTERS "Keep Frame Pointers (dev)" ${ASAN})
 
-if (CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
+# Linux desktop integrations which have no windows implementation.
+if (WIN32)
+	set(QS_UNIX_DEFAULT OFF)
+	set(QS_WINDOWS_DEFAULT ON)
+else()
+	set(QS_UNIX_DEFAULT ON)
+	set(QS_WINDOWS_DEFAULT OFF)
+endif()
+
+if (CMAKE_SYSTEM_NAME STREQUAL "FreeBSD" OR WIN32)
 	boption(USE_JEMALLOC "Use jemalloc" OFF)
 else()
 	boption(USE_JEMALLOC "Use jemalloc" ON)
 endif()
-boption(CRASH_HANDLER "Crash Handling" ON)
+boption(CRASH_HANDLER "Crash Handling" ${QS_UNIX_DEFAULT})
 boption(SOCKETS "Unix Sockets" ON)
-boption(WAYLAND "Wayland" ON)
+boption(WAYLAND "Wayland" ${QS_UNIX_DEFAULT})
 boption(WAYLAND_WLR_LAYERSHELL "  Wlroots Layer-Shell" ON REQUIRES WAYLAND)
 boption(WAYLAND_SESSION_LOCK "  Session Lock" ON REQUIRES WAYLAND)
 boption(WAYLAND_TOPLEVEL_MANAGEMENT "  Foreign Toplevel Management" ON REQUIRES WAYLAND)
@@ -68,28 +77,41 @@ boption(SCREENCOPY "  Screencopy" ON REQUIRES WAYLAND)
 boption(SCREENCOPY_ICC "    Image Copy Capture" ON REQUIRES WAYLAND)
 boption(SCREENCOPY_WLR "    Wlroots Screencopy" ON REQUIRES WAYLAND)
 boption(SCREENCOPY_HYPRLAND_TOPLEVEL "    Hyprland Toplevel Export" ON REQUIRES WAYLAND)
-boption(X11 "X11" ON)
-boption(I3 "I3/Sway" ON)
+boption(X11 "X11" ${QS_UNIX_DEFAULT})
+boption(I3 "I3/Sway" ${QS_UNIX_DEFAULT})
 boption(I3_IPC "  I3/Sway IPC" ON REQUIRES I3)
-boption(SERVICE_STATUS_NOTIFIER "System Tray" ON)
-boption(SERVICE_PIPEWIRE "PipeWire" ON)
-boption(SERVICE_MPRIS "Mpris" ON)
-boption(SERVICE_PAM "Pam" ON)
-boption(SERVICE_POLKIT "Polkit" ON)
-boption(SERVICE_GREETD "Greetd" ON)
-boption(SERVICE_UPOWER "UPower" ON)
-boption(SERVICE_NOTIFICATIONS "Notifications" ON)
-boption(BLUETOOTH "Bluetooth" ON)
-boption(NETWORK "Network" ON)
+boption(SERVICE_STATUS_NOTIFIER "System Tray" ${QS_UNIX_DEFAULT})
+boption(SERVICE_PIPEWIRE "PipeWire" ${QS_UNIX_DEFAULT})
+boption(SERVICE_MPRIS "Mpris" ${QS_UNIX_DEFAULT})
+boption(SERVICE_PAM "Pam" ${QS_UNIX_DEFAULT})
+boption(SERVICE_POLKIT "Polkit" ${QS_UNIX_DEFAULT})
+boption(SERVICE_GREETD "Greetd" ${QS_UNIX_DEFAULT})
+boption(SERVICE_UPOWER "UPower" ${QS_UNIX_DEFAULT})
+boption(SERVICE_NOTIFICATIONS "Notifications" ${QS_UNIX_DEFAULT})
+boption(BLUETOOTH "Bluetooth" ${QS_UNIX_DEFAULT})
+boption(NETWORK "Network" ${QS_UNIX_DEFAULT})
+boption(WINDOWS_SHELL "Windows Shell Integration" ${QS_WINDOWS_DEFAULT})
 
 include(cmake/install-qml-module.cmake)
 include(cmake/util.cmake)
 
-add_compile_options(-Wall -Wextra -Wno-vla-cxx-extension)
+if (WIN32 AND NOT (CMAKE_CXX_COMPILER_ID STREQUAL "Clang"
+	AND CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC"))
+	message(FATAL_ERROR "Windows builds need clang-cl, configure with `cmake --preset windows`")
+endif()
 
-# pipewire defines these, breaking PCH
-add_compile_definitions(_REENTRANT)
-add_compile_options(-fno-strict-overflow)
+if (MSVC)
+	# clang-cl, so upstream's gnu extensions keep compiling
+	add_compile_options(/W4 /utf-8 /permissive- /Zc:__cplusplus /bigobj)
+	add_compile_options(/clang:-fgnu-keywords -Wno-vla-cxx-extension -Wno-clang-cl-pch)
+	add_compile_definitions(NOMINMAX WIN32_LEAN_AND_MEAN UNICODE _UNICODE)
+else()
+	add_compile_options(-Wall -Wextra -Wno-vla-cxx-extension)
+
+	# pipewire defines these, breaking PCH
+	add_compile_definitions(_REENTRANT)
+	add_compile_options(-fno-strict-overflow)
+endif()
 
 if (FRAME_POINTERS)
 	add_compile_options(-fno-omit-frame-pointer)
@@ -160,20 +182,25 @@ if (USE_JEMALLOC)
 	target_link_libraries(quickshell PRIVATE ${JEMALLOC_LIBRARIES})
 endif()
 
-install(CODE "
-	execute_process(
-		COMMAND ${CMAKE_COMMAND} -E create_symlink \
-		${CMAKE_INSTALL_FULL_BINDIR}/quickshell \$ENV{DESTDIR}${CMAKE_INSTALL_FULL_BINDIR}/qs
+if (WIN32)
+	# qs.exe is copied next to quickshell.exe in src/CMakeLists.txt
+	install(PROGRAMS $<TARGET_FILE_DIR:quickshell>/qs.exe DESTINATION ${CMAKE_INSTALL_BINDIR})
+else()
+	install(CODE "
+		execute_process(
+			COMMAND ${CMAKE_COMMAND} -E create_symlink \
+			${CMAKE_INSTALL_FULL_BINDIR}/quickshell \$ENV{DESTDIR}${CMAKE_INSTALL_FULL_BINDIR}/qs
+		)
+	")
+
+	install(
+		FILES ${CMAKE_SOURCE_DIR}/assets/org.quickshell.desktop
+		DESTINATION ${CMAKE_INSTALL_DATADIR}/applications
 	)
-")
 
-install(
-	FILES ${CMAKE_SOURCE_DIR}/assets/org.quickshell.desktop
-	DESTINATION ${CMAKE_INSTALL_DATADIR}/applications
-)
-
-install(
-	FILES ${CMAKE_SOURCE_DIR}/assets/quickshell.svg
-	DESTINATION ${CMAKE_INSTALL_DATADIR}/icons/hicolor/scalable/apps
-	RENAME org.quickshell.svg
-)
+	install(
+		FILES ${CMAKE_SOURCE_DIR}/assets/quickshell.svg
+		DESTINATION ${CMAKE_INSTALL_DATADIR}/icons/hicolor/scalable/apps
+		RENAME org.quickshell.svg
+	)
+endif()

@@ -3,7 +3,6 @@
 #include <cstring>
 #include <string_view>
 
-#include <fcntl.h>
 #include <qconfig.h>
 #include <qcontainerfwd.h>
 #include <qdebug.h>
@@ -11,13 +10,22 @@
 #include <qfloat16.h>
 #include <qhashfunctions.h>
 #include <qscopeguard.h>
+#include <qsysinfo.h>
 #include <qtversion.h>
+#ifndef Q_OS_WIN
+#include <fcntl.h>
 #include <unistd.h>
 #include <xf86drm.h>
+#endif
 
 #include "build.hpp"
 
+#ifdef Q_OS_WIN
+#include <cstdlib>
+#define environ _environ // NOLINT
+#else
 extern char** environ; // NOLINT
+#endif
 
 namespace qs::debuginfo {
 
@@ -28,6 +36,9 @@ QString qsVersion() {
 QString qtVersion() { return qVersion() % QStringLiteral(" (built against " QT_VERSION_STR ")"); }
 
 QString gpuInfo() {
+#ifdef Q_OS_WIN
+	return "GPU information is not available on windows.\n";
+#else
 	auto deviceCount = drmGetDevices2(0, nullptr, 0);
 	if (deviceCount < 0) return "Failed to get DRM device count: " % QString::number(deviceCount);
 	auto* devices = new drmDevicePtr[deviceCount];
@@ -95,6 +106,7 @@ QString gpuInfo() {
 	}
 
 	return info;
+#endif
 }
 
 QString systemInfo() {
@@ -102,6 +114,12 @@ QString systemInfo() {
 	auto stream = QTextStream(&info);
 
 	stream << gpuInfo() << '\n';
+
+#ifdef Q_OS_WIN
+	stream << "OS: " << QSysInfo::prettyProductName() << " (kernel " << QSysInfo::kernelVersion()
+	       << ", " << QSysInfo::currentCpuArchitecture() << ")\n";
+	return info;
+#endif
 
 	stream << "/etc/os-release:";
 	auto osReleaseFile = QFile("/etc/os-release");
