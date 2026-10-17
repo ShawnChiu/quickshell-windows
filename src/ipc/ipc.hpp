@@ -189,6 +189,12 @@ public:
 	void sendMessage(const T& message) {
 		this->stream << message;
 		this->socket.flush();
+
+#ifdef Q_OS_WIN
+		// Named pipe writes are asynchronous and only one is in flight at a time. The rest of the
+		// message stays queued until something waits on the writer, which waitForReadyRead won't.
+		while (this->socket.bytesToWrite() > 0 && this->socket.waitForBytesWritten(-1)) {}
+#endif
 	}
 
 	template <typename T>

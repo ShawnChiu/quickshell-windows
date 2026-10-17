@@ -11,6 +11,7 @@
 #include <qobject.h>
 
 #include "../core/generation.hpp"
+#include "../core/instanceinfo.hpp"
 #include "../core/logcat.hpp"
 #include "../core/paths.hpp"
 #include "ipccommand.hpp"
@@ -33,9 +34,8 @@ IpcServer::IpcServer(const QString& path) {
 }
 
 void IpcServer::start() {
-	if (auto* run = QsPaths::instance()->instanceRunDir()) {
-		auto path = run->filePath("ipc.sock");
-		new IpcServer(path);
+	if (QsPaths::instance()->instanceRunDir()) {
+		new IpcServer(QsPaths::ipcPath(InstanceInfo::CURRENT.instanceId));
 	} else {
 		qCCritical(
 		    logIpc
@@ -103,6 +103,10 @@ void IpcServerConnection::onReadyRead() {
 
 	// async connections reparent
 	if (dynamic_cast<IpcServer*>(this->parent()) != nullptr) {
+#ifdef Q_OS_WIN
+		// Named pipe writes are asynchronous, and deleting the socket drops anything still queued.
+		if (this->socket->bytesToWrite() > 0) this->socket->waitForBytesWritten(1000);
+#endif
 		this->deleteLater();
 	}
 }
