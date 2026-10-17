@@ -187,7 +187,11 @@ void Process::startProcessIfReady() {
 
 	auto& cmd = this->mCommand.first();
 	if (cmd.startsWith("file://")) {
+#ifdef Q_OS_WIN
+		cmd = QUrl(cmd).toLocalFile();
+#else
 		cmd = cmd.sliced(7);
+#endif
 	} else if (cmd.startsWith("root://")) {
 		cmd = cmd.sliced(7);
 		auto& root = EngineGeneration::findObjectGeneration(this)->rootPath;

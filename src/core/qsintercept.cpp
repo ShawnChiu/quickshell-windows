@@ -19,6 +19,11 @@
 
 QS_LOGGING_CATEGORY(logQsIntercept, "quickshell.interceptor", QtWarningMsg);
 
+namespace {
+// File url paths need a slash before windows drive letters (file:///C:/...).
+QString fileUrlPath(const QString& path) { return path.startsWith('/') ? path : u'/' + path; }
+} // namespace
+
 QUrl QsUrlInterceptor::intercept(
     const QUrl& originalUrl,
     QQmlAbstractUrlInterceptor::DataType type
@@ -60,7 +65,7 @@ QUrl QsUrlInterceptor::intercept(
 			auto newUrl = url;
 			newUrl.setScheme("file");
 			// above check asserts path starts with /qs/
-			newUrl.setPath(path);
+			newUrl.setPath(fileUrlPath(path));
 			qCDebug(logQsIntercept) << "Rewrote intercept" << url << "to" << newUrl;
 			return newUrl;
 		}
@@ -116,7 +121,7 @@ QNetworkReply* QsInterceptNetworkAccessManager::createRequest(
 		auto fileReq = req;
 		auto fileUrl = req.url();
 		fileUrl.setScheme("file");
-		fileUrl.setPath(path);
+		fileUrl.setPath(fileUrlPath(path));
 		qCDebug(logQsIntercept) << "Passing through intercept" << url << "to" << fileUrl;
 
 		fileReq.setUrl(fileUrl);
