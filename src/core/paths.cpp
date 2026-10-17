@@ -4,8 +4,8 @@
 #include <tuple>
 #include <utility>
 
-#include <fcntl.h>
 #include <qcontainerfwd.h>
+#include <qcoreapplication.h>
 #include <qdatastream.h>
 #include <qdir.h>
 #include <qlogging.h>
@@ -13,10 +13,10 @@
 #include <qstandardpaths.h>
 #include <qtenvironmentvariables.h>
 #include <qtversionchecks.h>
-#include <unistd.h>
 
 #include "instanceinfo.hpp"
 #include "logcat.hpp"
+#include "platform.hpp"
 
 namespace {
 QS_LOGGING_CATEGORY(logPaths, "quickshell.paths", QtWarningMsg);
@@ -57,14 +57,19 @@ QString QsPaths::basePath(const QString& id) {
 }
 
 QString QsPaths::ipcPath(const QString& id) {
+#ifdef Q_OS_WIN
+	// QLocalServer uses named pipes on windows, which live in their own namespace.
+	return QStringLiteral("quickshell-ipc-") % id;
+#else
 	return QDir(QsPaths::basePath(id)).filePath("ipc.sock");
+#endif
 }
 
 QDir* QsPaths::baseRunDir() {
 	if (this->baseRunState == DirState::Unknown) {
 		auto runtimeDir = qEnvironmentVariable("XDG_RUNTIME_DIR");
 		if (runtimeDir.isEmpty()) {
-			runtimeDir = QString("/run/user/%1").arg(getuid());
+			runtimeDir = qs::platform::defaultRuntimeDir();
 			qCInfo(logPaths) << "XDG_RUNTIME_DIR was not set, defaulting to" << runtimeDir;
 		}
 
@@ -181,11 +186,9 @@ void QsPaths::linkRunDir() {
 		} else {
 			auto shellPath = shellDir->filePath(runDir->dirName());
 
-			QFile::remove(shellPath);
-			auto r =
-			    symlinkat(runDir->filesystemCanonicalPath().c_str(), 0, shellPath.toStdString().c_str());
+			qs::platform::removeDirLink(shellPath);
 
-			if (r != 0) {
+			if (!qs::platform::createDirLink(runDir->canonicalPath(), shellPath)) {
 				qCCritical(logPaths).nospace()
 				    << "Could not create id symlink to " << runDir->path() << " at " << shellPath
 				    << " with error code " << errno << ": " << qt_error_string();
@@ -198,13 +201,11 @@ void QsPaths::linkRunDir() {
 		if (!pidDir.mkpath(".")) {
 			qCCritical(logPaths) << "Could not create PID symlink directory.";
 		} else {
-			auto pidPath = pidDir.filePath(QString::number(getpid()));
+			auto pidPath = pidDir.filePath(QString::number(QCoreApplication::applicationPid()));
 
-			QFile::remove(pidPath);
-			auto r =
-			    symlinkat(runDir->filesystemCanonicalPath().c_str(), 0, pidPath.toStdString().c_str());
+			qs::platform::removeDirLink(pidPath);
 
-			if (r != 0) {
+			if (!qs::platform::createDirLink(runDir->canonicalPath(), pidPath)) {
 				qCCritical(logPaths).nospace()
 				    << "Could not create PID symlink to " << runDir->path() << " at " << pidPath
 				    << " with error code " << errno << ": " << qt_error_string();
@@ -230,11 +231,9 @@ void QsPaths::linkPathDir() {
 
 		auto linkPath = pathDir.filePath(this->pathId);
 
-		QFile::remove(linkPath);
-		auto r =
-		    symlinkat(runDir->filesystemCanonicalPath().c_str(), 0, linkPath.toStdString().c_str());
+		qs::platform::removeDirLink(linkPath);
 
-		if (r != 0) {
+		if (!qs::platform::createDirLink(runDir->canonicalPath(), linkPath)) {
 			qCCritical(logPaths).nospace()
 			    << "Could not create path symlink to " << runDir->path() << " at " << linkPath
 			    << " with error code " << errno << ": " << qt_error_string();
@@ -361,15 +360,7 @@ void QsPaths::createLock() {
 			return;
 		}
 
-		struct flock lock = {
-		    .l_type = F_WRLCK,
-		    .l_whence = SEEK_SET,
-		    .l_start = 0,
-		    .l_len = 0,
-		    .l_pid = 0,
-		};
-
-		if (fcntl(file->handle(), F_SETLK, &lock) != 0) { // NOLINT
+		if (qs::platform::tryLockExclusive(file) != qs::platform::LockResult::Acquired) {
 			qCCritical(logPaths).nospace() << "Could not lock instance lock at " << path
 			                               << " with error code " << errno << ": " << qt_error_string();
 		} else {
@@ -389,24 +380,18 @@ bool QsPaths::checkLock(const QString& path, InstanceLockInfo* info, bool allowD
 	auto file = QFile(QDir(path).filePath("instance.lock"));
 	if (!file.open(QFile::ReadOnly)) return false;
 
-	struct flock lock = {
-	    .l_type = F_WRLCK,
-	    .l_whence = SEEK_SET,
-	    .l_start = 0,
-	    .l_len = 0,
-	    .l_pid = 0,
-	};
-
-	fcntl(file.handle(), F_GETLK, &lock); // NOLINT
-	auto isLocked = lock.l_type != F_UNLCK;
+	qint64 lockPid = -1;
+	auto isLocked = qs::platform::isLockedByOther(&file, &lockPid);
 
 	if (!isLocked && !allowDead) return false;
 
 	if (info) {
-		info->pid = isLocked ? lock.l_pid : -1;
-
 		auto stream = QDataStream(&file);
 		stream >> info->instance;
+
+		// Platforms that can't report the lock holder fall back to the pid the instance recorded.
+		if (isLocked && lockPid == -1) lockPid = info->instance.pid;
+		info->pid = isLocked ? static_cast<pid_t>(lockPid) : -1;
 	}
 
 	return true;

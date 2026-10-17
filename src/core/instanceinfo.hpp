@@ -3,7 +3,11 @@
 #include <qdatetime.h>
 #include <qlogging.h>
 #include <qstring.h>
+#ifdef _WIN32
+using pid_t = int;
+#else
 #include <sys/types.h>
+#endif
 
 struct InstanceInfo {
 	QString instanceId;
