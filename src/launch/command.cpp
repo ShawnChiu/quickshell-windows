@@ -43,25 +43,32 @@ using qs::ipc::IpcClient;
 namespace {
 
 QList<QString> configBaseDirs() {
-	auto configHome = qEnvironmentVariable("XDG_CONFIG_HOME");
-	if (configHome.isEmpty()) {
-#ifdef Q_OS_WIN
-		configHome = QDir::fromNativeSeparators(qEnvironmentVariable("APPDATA"));
-#else
-		auto home = QDir(QStandardPaths::writableLocation(QStandardPaths::HomeLocation));
-		configHome = QDir(home).filePath(".config");
-#endif
-	}
-
 	auto configDirs =
 	    qEnvironmentVariable("XDG_CONFIG_DIRS").split(QDir::listSeparator(), Qt::SkipEmptyParts);
-#ifndef Q_OS_WIN
+
+#ifdef Q_OS_WIN
+	// chezmoi and most cross-platform tools (komorebi, yasb) use ~/.config on windows,
+	// so search it before the native %APPDATA% location.
+	auto home = QDir(QStandardPaths::writableLocation(QStandardPaths::HomeLocation));
+	auto appData = QDir::fromNativeSeparators(qEnvironmentVariable("APPDATA"));
+	if (!appData.isEmpty()) configDirs.prepend(appData);
+	configDirs.prepend(home.filePath(".config"));
+
+	auto configHome = qEnvironmentVariable("XDG_CONFIG_HOME");
+	if (!configHome.isEmpty()) configDirs.prepend(QDir::fromNativeSeparators(configHome));
+#else
+	auto configHome = qEnvironmentVariable("XDG_CONFIG_HOME");
+	if (configHome.isEmpty()) {
+		auto home = QDir(QStandardPaths::writableLocation(QStandardPaths::HomeLocation));
+		configHome = QDir(home).filePath(".config");
+	}
+
 	if (configDirs.isEmpty()) {
 		configDirs.append("/etc/xdg");
 	}
-#endif
 
 	configDirs.prepend(configHome);
+#endif
 
 	for (auto& dir: configDirs) {
 		dir.append("/quickshell");
