@@ -58,6 +58,12 @@ IpcServerConnection::IpcServerConnection(QLocalSocket* socket, IpcServer* server
 	QObject::connect(socket, &QLocalSocket::readyRead, this, &IpcServerConnection::onReadyRead);
 
 	qCInfo(logIpc) << "New IPC connection" << this;
+
+	// The windows pipe reader may have buffered data (and emitted readyRead) before the
+	// connection above was made.
+	if (socket->bytesAvailable() > 0) {
+		QMetaObject::invokeMethod(this, &IpcServerConnection::onReadyRead, Qt::QueuedConnection);
+	}
 }
 
 void IpcServerConnection::onDisconnected() {
@@ -72,7 +78,14 @@ void IpcServerConnection::onReadyRead() {
 	this->stream.startTransaction();
 	IpcCommand command;
 	this->stream >> command;
-	if (!this->stream.commitTransaction()) return;
+
+	if (!this->stream.commitTransaction()) {
+		// The message hasn't fully arrived yet. Close the outer transaction as well, otherwise the
+		// stream stays in ReadPastEnd and every following read nests another transaction.
+		// Messages often arrive in several chunks over windows named pipes.
+		this->stream.rollbackTransaction();
+		return;
+	}
 
 	std::visit(
 	    [this]<typename Command>(Command& command) {
