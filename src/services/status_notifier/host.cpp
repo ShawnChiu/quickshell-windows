@@ -1,6 +1,7 @@
 #include "host.hpp"
 
 #include <qcontainerfwd.h>
+#include <qcoreapplication.h>
 #include <qdbusconnection.h>
 #include <qdbuserror.h>
 #include <qdbusservicewatcher.h>
@@ -9,7 +10,6 @@
 #include <qloggingcategory.h>
 #include <qobject.h>
 #include <qtmetamacros.h>
-#include <unistd.h>
 
 #include "../../core/common.hpp"
 #include "../../core/logcat.hpp"
@@ -34,7 +34,7 @@ StatusNotifierHost::StatusNotifierHost(QObject* parent): QObject(parent) {
 	}
 
 	this->hostId = QString("org.kde.StatusNotifierHost-%1-%2")
-	                   .arg(QString::number(getpid()))
+	                   .arg(QString::number(QCoreApplication::applicationPid()))
 	                   .arg(QString::number(qs::Common::LAUNCH_TIME.toMSecsSinceEpoch()));
 
 	auto success = bus.registerService(this->hostId);
