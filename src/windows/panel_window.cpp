@@ -7,6 +7,7 @@
 #include <qhash.h>
 #include <qlogging.h>
 #include <qloggingcategory.h>
+#include <qmetaobject.h>
 #include <qnamespace.h>
 #include <qobject.h>
 #include <qpoint.h>
@@ -17,6 +18,7 @@
 #include <qsize.h>
 #include <qtmetamacros.h>
 #include <qtypes.h>
+#include <qwindow.h>
 
 // windows.h has to come before shellapi.h
 #include <windows.h>
@@ -125,7 +127,19 @@ public:
 } // namespace
 
 bool WinPanelEventFilter::eventFilter(QObject* watched, QEvent* event) {
-	if (event->type() == QEvent::PlatformSurface) {
+	if (event->type() == QEvent::WindowStateChange) {
+		// Like a layer shell surface, a panel can't be minimized. Window managers minimize the
+		// foreground window without asking (komorebic minimize), so undo it.
+		auto* window = static_cast<QWindow*>(watched); // NOLINT
+		if (window->windowStates().testFlag(Qt::WindowMinimized)) {
+			auto* hwnd = reinterpret_cast<HWND>(window->winId()); // NOLINT
+			QMetaObject::invokeMethod(
+			    window,
+			    [hwnd] { ShowWindow(hwnd, SW_SHOWNOACTIVATE); },
+			    Qt::QueuedConnection
+			);
+		}
+	} else if (event->type() == QEvent::PlatformSurface) {
 		auto* surfaceEvent = static_cast<QPlatformSurfaceEvent*>(event); // NOLINT
 
 		switch (surfaceEvent->surfaceEventType()) {
