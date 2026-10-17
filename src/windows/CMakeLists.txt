@@ -1,5 +1,6 @@
 qt_add_library(quickshell-windows STATIC
 	panel_window.cpp
+	idle.cpp
 )
 
 qt_add_qml_module(quickshell-windows
@@ -20,3 +21,8 @@ target_link_libraries(quickshell-windows-init PRIVATE Qt::Quick Qt::Qml)
 qs_module_pch(quickshell-windows SET large)
 
 target_link_libraries(quickshell PRIVATE quickshell-windowsplugin quickshell-windows-init)
+
+# Quickshell.Wayland is only provided as a stand-in when the real module is not built.
+if (NOT WAYLAND)
+	add_subdirectory(wayland)
+endif()

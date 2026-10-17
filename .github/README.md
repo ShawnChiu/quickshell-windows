@@ -30,8 +30,14 @@ Implemented but not yet verified:
 - Multiple monitors and mixed DPI
 - `FloatingWindow`, `PopupWindow`, `FileView`, `Socket`
 
+Windows specific (`import Quickshell.Windows`):
+- `IdleInhibitor`: keeps the display on and the system awake while `enabled`.
+- `IdleMonitor`: `isIdle` after `timeout` seconds without keyboard or mouse input.
+
 Not available on Windows (disabled at build time):
-- Wayland, Hyprland, X11 and i3 integrations
+- Wayland, Hyprland, X11 and i3 integrations. `Quickshell.Wayland` can still be imported so
+  shared configs load: `WlrLayershell`, `WlrLayer`, `WlrKeyboardFocus`, `BackgroundEffect`,
+  `IdleInhibitor` and `IdleMonitor` exist but do nothing.
 - Services: PipeWire, MPRIS, UPower, system tray, notifications, PAM, Polkit, greetd
 - Bluetooth, Network
 - Crash reporter, qmlls tooling support
