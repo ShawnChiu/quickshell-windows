@@ -41,6 +41,10 @@ if (I3)
 	add_subdirectory(x11/i3)
 endif()
 
+if (WINDOWS_SHELL)
+	add_subdirectory(windows)
+endif()
+
 add_subdirectory(services)
 
 if (BLUETOOTH)
