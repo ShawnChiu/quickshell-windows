@@ -24,15 +24,18 @@ Tested:
 - Loading QML shells, hot reload
 - `PanelWindow` placement and reserving screen space through the Win32 AppBar API
 - `Process`, `IpcHandler`
+- `SocketServer` and `Socket` over named pipes (a `path` without `\\.\pipe\` is a pipe name)
 - `qs ipc`, `qs list`, `qs kill`, `qs -d` (daemonize)
 
 Implemented but not yet verified:
 - Multiple monitors and mixed DPI
-- `FloatingWindow`, `PopupWindow`, `FileView`, `Socket`
+- `FloatingWindow`, `PopupWindow`, `FileView`
 
 Windows specific (`import Quickshell.Windows`):
 - `IdleInhibitor`: keeps the display on and the system awake while `enabled`.
 - `IdleMonitor`: `isIdle` after `timeout` seconds without keyboard or mouse input.
+- `Hwnd`: `activate`, `close` and `processId` for a window by handle, as window managers such as
+  komorebi report them.
 
 Built but inert (they talk to DBus, and Windows has no session bus): `Quickshell.Bluetooth`,
 `Quickshell.Services.UPower`, `Mpris`, `SystemTray` and `Notifications` load and stay empty, the
