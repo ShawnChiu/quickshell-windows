@@ -30,12 +30,17 @@ Windows specific (`import Quickshell.Windows`):
 - `IdleInhibitor`: keeps the display on and the system awake while `enabled`.
 - `IdleMonitor`: `isIdle` after `timeout` seconds without keyboard or mouse input.
 
+Built but inert (they talk to DBus, and Windows has no session bus): `Quickshell.Bluetooth`,
+`Quickshell.Services.UPower`, `Mpris`, `SystemTray` and `Notifications` load and stay empty, the
+same as on Linux with the service not running. Each logs one "Could not connect to DBus" warning
+when first used.
+
 Not available on Windows (disabled at build time):
 - Wayland, Hyprland, X11 and i3 integrations. `Quickshell.Wayland` can still be imported so
   shared configs load: `WlrLayershell`, `WlrLayer`, `WlrKeyboardFocus`, `BackgroundEffect`,
   `IdleInhibitor` and `IdleMonitor` exist but do nothing.
-- Services: PipeWire, MPRIS, UPower, system tray, notifications, PAM, Polkit, greetd
-- Bluetooth, Network
+- Services: PipeWire, PAM, Polkit, greetd
+- Network
 - Crash reporter, qmlls tooling support
 - `DesktopEntries` (always empty)
 
