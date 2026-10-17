@@ -1,5 +1,4 @@
 #include "process.hpp"
-#include <csignal> // NOLINT
 #include <utility>
 
 #include <qdir.h>
@@ -11,9 +10,11 @@
 #include <qqmlinfo.h>
 #include <qtmetamacros.h>
 #include <qtypes.h>
+#include <qurl.h>
 #include <qvariant.h>
 
 #include "../core/generation.hpp"
+#include "../core/platform.hpp"
 #include "../core/qmlglobal.hpp"
 #include "../core/reload.hpp"
 #include "datastream.hpp"
@@ -312,7 +313,7 @@ void Process::onStderrReadyRead() {
 
 void Process::signal(qint32 signal) {
 	if (this->process == nullptr) return;
-	kill(static_cast<qint32>(this->process->processId()), signal); // NOLINT
+	qs::platform::sendSignal(this->process->processId(), signal);
 }
 
 void Process::write(const QString& data) {
