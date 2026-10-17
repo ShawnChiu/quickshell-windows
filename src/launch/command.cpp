@@ -23,12 +23,15 @@
 #include <qstandardpaths.h>
 #include <qtenvironmentvariables.h>
 #include <qtversion.h>
+#ifndef Q_OS_WIN
 #include <unistd.h>
+#endif
 
 #include "../core/debuginfo.hpp"
 #include "../core/instanceinfo.hpp"
 #include "../core/logging.hpp"
 #include "../core/paths.hpp"
+#include "../core/platform.hpp"
 #include "../io/ipccomm.hpp"
 #include "../ipc/ipc.hpp"
 #include "launch_p.hpp"
@@ -42,14 +45,21 @@ namespace {
 QList<QString> configBaseDirs() {
 	auto configHome = qEnvironmentVariable("XDG_CONFIG_HOME");
 	if (configHome.isEmpty()) {
+#ifdef Q_OS_WIN
+		configHome = QDir::fromNativeSeparators(qEnvironmentVariable("APPDATA"));
+#else
 		auto home = QDir(QStandardPaths::writableLocation(QStandardPaths::HomeLocation));
 		configHome = QDir(home).filePath(".config");
+#endif
 	}
 
-	auto configDirs = qEnvironmentVariable("XDG_CONFIG_DIRS").split(':', Qt::SkipEmptyParts);
+	auto configDirs =
+	    qEnvironmentVariable("XDG_CONFIG_DIRS").split(QDir::listSeparator(), Qt::SkipEmptyParts);
+#ifndef Q_OS_WIN
 	if (configDirs.isEmpty()) {
 		configDirs.append("/etc/xdg");
 	}
+#endif
 
 	configDirs.prepend(configHome);
 
@@ -508,6 +518,14 @@ int runCommand(int argc, char** argv) {
 		return 0;
 	}
 
+#ifdef Q_OS_WIN
+	if (state.misc.daemonize) {
+		DAEMON_PIPE = platform::takeDaemonPipe("__QUICKSHELL_DAEMON_PIPE");
+
+		// Not the daemon yet, relaunch as one and wait for it to start.
+		if (DAEMON_PIPE == -1) return platform::spawnDaemon("__QUICKSHELL_DAEMON_PIPE");
+	}
+#else
 	// Has to happen before extra threads are spawned.
 	if (state.misc.daemonize) {
 		auto closepipes = std::array<int, 2>();
@@ -539,6 +557,7 @@ int runCommand(int argc, char** argv) {
 			return ret;
 		}
 	}
+#endif
 
 	{
 		auto level = state.log.verbosity == 0 ? QtWarningMsg
@@ -592,6 +611,10 @@ int runCommand(int argc, char** argv) {
 QString getDisplayConnection() {
 	// Doesn't actually have to match what qt picks, but will 99% of the time.
 	// Running quickshell under wayland in x11 mode doesn't really make any sense.
+#ifdef Q_OS_WIN
+	return "windows";
+#endif
+
 	auto wlDisplay = qEnvironmentVariable("WAYLAND_DISPLAY");
 	auto xDisplay = qEnvironmentVariable("DISPLAY");
 

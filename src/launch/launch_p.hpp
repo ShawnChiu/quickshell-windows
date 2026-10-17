@@ -7,6 +7,8 @@
 #include <qcoreapplication.h>
 #include <qstring.h>
 
+#include "../core/instanceinfo.hpp"
+
 namespace qs::launch {
 
 extern int DAEMON_PIPE; // NOLINT
