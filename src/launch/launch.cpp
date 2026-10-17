@@ -15,7 +15,6 @@
 #include <qstring.h>
 #include <qtenvironmentvariables.h>
 #include <qtextstream.h>
-#include <unistd.h>
 
 #include "../core/common.hpp"
 #include "../core/instanceinfo.hpp"
@@ -142,12 +141,12 @@ int launch(const LaunchArgs& args, char** argv) {
 	auto appId = pragmas.appId.isEmpty() ? QStringLiteral("org.quickshell") : pragmas.appId;
 
 	InstanceInfo::CURRENT = InstanceInfo {
-	    .instanceId = base36Encode(getpid()) + base36Encode(launchTime),
+	    .instanceId = base36Encode(QCoreApplication::applicationPid()) + base36Encode(launchTime),
 	    .configPath = args.configPath,
 	    .shellId = shellId,
 	    .appId = appId,
 	    .launchTime = qs::Common::LAUNCH_TIME,
-	    .pid = getpid(),
+	    .pid = static_cast<pid_t>(QCoreApplication::applicationPid()),
 	    .display = getDisplayConnection(),
 	};
 
@@ -258,10 +257,12 @@ int launch(const LaunchArgs& args, char** argv) {
 
 		if (qEnvironmentVariableIsSet("XDG_DATA_DIRS")) {
 			auto var = qEnvironmentVariable("XDG_DATA_DIRS");
-			dataPaths = var.split(u':', Qt::SkipEmptyParts);
+			dataPaths = var.split(QDir::listSeparator(), Qt::SkipEmptyParts);
 		} else {
+#ifndef Q_OS_WIN
 			dataPaths.push_back("/usr/local/share");
 			dataPaths.push_back("/usr/share");
+#endif
 		}
 
 		auto fallbackPaths = QIcon::fallbackSearchPaths();

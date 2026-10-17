@@ -1,14 +1,18 @@
 #include "main.hpp"
 #include <cerrno>
 
-#include <fcntl.h>
 #include <qcoreapplication.h>
 #include <qdatastream.h>
 #include <qdatetime.h>
 #include <qdebug.h>
 #include <qlogging.h>
 #include <qtenvironmentvariables.h>
+#ifdef Q_OS_WIN
+#include <io.h>
+#else
+#include <fcntl.h>
 #include <unistd.h>
+#endif
 
 #include "../core/instanceinfo.hpp"
 #include "../core/logging.hpp"
@@ -84,6 +88,18 @@ int DAEMON_PIPE = -1; // NOLINT
 void exitDaemon(int code) {
 	if (DAEMON_PIPE == -1) return;
 
+#ifdef Q_OS_WIN
+	if (_write(DAEMON_PIPE, &code, sizeof(int)) == -1) {
+		qCritical().nospace() << "Failed to write daemon exit command with error code " << errno << ": "
+		                      << qt_error_string(errno);
+	}
+
+	_close(DAEMON_PIPE);
+	DAEMON_PIPE = -1;
+
+	// The daemon is started without a console, so stdio is already detached.
+	return;
+#else
 	if (write(DAEMON_PIPE, &code, sizeof(int)) == -1) {
 		qCritical().nospace() << "Failed to write daemon exit command with error code " << errno << ": "
 		                      << qt_error_string();
@@ -114,6 +130,7 @@ void exitDaemon(int code) {
 	}
 
 	close(fd);
+#endif
 }
 
 int main(int argc, char** argv) {
