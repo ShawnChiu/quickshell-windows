@@ -13,6 +13,7 @@
 #include <qqmlparserstatus.h>
 #include <qquickitem.h>
 #include <qquickwindow.h>
+#include <qregion.h>
 #include <qsurfaceformat.h>
 #include <qtmetamacros.h>
 #include <qtypes.h>
@@ -69,6 +70,10 @@ public:
 	~ProxyWindowBase() override;
 
 	static ProxyWindowBase* forObject(QObject* obj);
+
+	// Sets a window's input mask in place of QWindow::setMask, which on Windows also clips what
+	// the window draws. Set by the Windows module.
+	static inline void (*applyInputMask)(QWindow* window, const QRegion& mask) = nullptr;
 
 	ProxyWindowBase(ProxyWindowBase&) = delete;
 	ProxyWindowBase(ProxyWindowBase&&) = delete;
