@@ -12,12 +12,16 @@
 
 namespace qs::windows {
 
-// Keeps the display on and the system awake while enabled, using SetThreadExecutionState.
-// Windows tracks this per process, so no window is needed.
+///! Keeps the display on and the system awake.
+/// Uses [SetThreadExecutionState]. Windows tracks this per process, so unlike
+/// @@Quickshell.Wayland.IdleInhibitor no window is needed.
+///
+/// [SetThreadExecutionState]: https://learn.microsoft.com/windows/win32/api/winbase/nf-winbase-setthreadexecutionstate
 class IdleInhibitor: public QObject {
 	Q_OBJECT;
 	QML_ELEMENT;
 	// clang-format off
+	/// If the inhibitor should be enabled. Defaults to false.
 	Q_PROPERTY(bool enabled READ default WRITE default NOTIFY enabledChanged BINDABLE bindableEnabled);
 	// clang-format on
 
@@ -46,18 +50,21 @@ private:
 	// clang-format on
 };
 
-// Reports when there has been no keyboard or mouse input for timeout seconds, by polling
-// GetLastInputInfo.
+///! Reports when the user stops providing input.
+/// @@isIdle is set after @@timeout seconds without keyboard or mouse input, found by polling
+/// [GetLastInputInfo].
+///
+/// [GetLastInputInfo]: https://learn.microsoft.com/windows/win32/api/winuser/nf-winuser-getlastinputinfo
 class IdleMonitor: public PostReloadHook {
 	Q_OBJECT;
 	QML_ELEMENT;
 	// clang-format off
-	// Defaults to true.
+	/// If the idle monitor should be enabled. Defaults to true.
 	Q_PROPERTY(bool enabled READ default WRITE default NOTIFY enabledChanged BINDABLE bindableEnabled);
-	// Seconds without input before isIdle is set.
+	/// Seconds without input before @@isIdle is set. Defaults to 0.
 	Q_PROPERTY(qreal timeout READ default WRITE default NOTIFY timeoutChanged BINDABLE bindableTimeout);
-	// If an enabled IdleInhibitor keeps isIdle false. Only inhibitors in this process are
-	// seen, Windows does not expose other programs' requests. Defaults to true.
+	/// If an enabled @@IdleInhibitor keeps @@isIdle false. Only inhibitors in this process are
+	/// seen, Windows does not expose other programs' requests. Defaults to true.
 	Q_PROPERTY(bool respectInhibitors READ default WRITE default NOTIFY respectInhibitorsChanged BINDABLE bindableRespectInhibitors);
 	Q_PROPERTY(bool isIdle READ default NOTIFY isIdleChanged BINDABLE bindableIsIdle);
 	// clang-format on
