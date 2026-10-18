@@ -46,6 +46,10 @@ Windows specific (`import Quickshell.Windows`):
   is on.
 - `PowerManager`: power supply, energy saver, batteries (`Battery`, capacities in mWh) and the
   power mode (Settings > System > Power), which can also be set.
+- `Audio`: the outputs and inputs (`AudioEndpoint`) with their name, form factor, state, volume
+  and mute, and the default output and input. Volume and mute can be set on active endpoints,
+  and setting `defaultOutput` or `defaultInput` changes the default for all roles, as Settings
+  does. There is no PipeWire on Windows, so shared configs load a small file per platform.
 
 Upstream services backed by Windows:
 - `Quickshell.Services.UPower` reports `PowerManager`'s batteries as laptop batteries
