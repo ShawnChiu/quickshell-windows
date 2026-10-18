@@ -48,9 +48,17 @@ Windows specific (`import Quickshell.Windows`):
   is unfocused, unlike Mica and Acrylic. `radius` and `saturation` default to Acrylic's. Like
   Windows' own blur it turns solid while Transparency effects is off or battery or energy saver
   is on.
+- `PowerManager`: power supply, energy saver, batteries (`Battery`, capacities in mWh) and the
+  power mode (Settings > System > Power), which can also be set.
+
+Upstream services backed by Windows:
+- `Quickshell.Services.UPower` reports `PowerManager`'s batteries as laptop batteries
+  (`displayDevice` is all of them combined), and `PowerProfiles` maps to the power mode: Best
+  power efficiency, Balanced and Best performance. Peripheral batteries are not listed, and there
+  are no profile holds or degradation reasons. Tested on a desktop only (no battery).
 
 Built but inert (they talk to DBus, and Windows has no session bus): `Quickshell.Bluetooth`,
-`Quickshell.Services.UPower`, `Mpris`, `SystemTray` and `Notifications` load and stay empty, the
+`Quickshell.Services.Mpris`, `SystemTray` and `Notifications` load and stay empty, the
 same as on Linux with the service not running. Each logs one "Could not connect to DBus" warning
 when first used.
 
