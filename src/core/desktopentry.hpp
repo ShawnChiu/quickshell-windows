@@ -92,6 +92,10 @@ public:
 	explicit DesktopEntry(QString id, QObject* parent): QObject(parent), mId(std::move(id)) {}
 
 	static ParsedDesktopEntryData parseText(const QString& id, const QString& text);
+#ifdef Q_OS_WIN
+	// A Start menu shortcut (.lnk) as an Application entry, in desktopentry_win.cpp.
+	static ParsedDesktopEntryData parseShortcut(const QString& id, const QString& path);
+#endif
 	void updateState(const ParsedDesktopEntryData& newState);
 
 	/// Run the application. Currently ignores @@runInTerminal and field codes.

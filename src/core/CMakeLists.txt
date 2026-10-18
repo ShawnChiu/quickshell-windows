@@ -57,6 +57,10 @@ qt_add_qml_module(quickshell-core
 	DEFAULT_IMPORTS Quickshell._Window
 )
 
+if (WIN32)
+	target_sources(quickshell-core PRIVATE desktopentry_win.cpp)
+endif()
+
 install_qml_module(quickshell-core)
 
 target_link_libraries(quickshell-core PRIVATE Qt::Quick Qt::QuickPrivate Qt::Widgets quickshell-build)
