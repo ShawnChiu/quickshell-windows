@@ -40,6 +40,10 @@ Windows specific (`import Quickshell.Windows`):
 - `IdleMonitor`: `isIdle` after `timeout` seconds without keyboard or mouse input.
 - `Hwnd`: `activate`, `close` and `processId` for a window by handle, as window managers such as
   komorebi report them.
+- `BlurBehind.region`: blurs what is behind part of a window, and stays blurred while the window
+  is unfocused, unlike Mica and Acrylic. `radius` and `saturation` default to Acrylic's. Like
+  Windows' own blur it turns solid while Transparency effects is off or battery or energy saver
+  is on.
 
 Built but inert (they talk to DBus, and Windows has no session bus): `Quickshell.Bluetooth`,
 `Quickshell.Services.UPower`, `Mpris`, `SystemTray` and `Notifications` load and stay empty, the
@@ -48,8 +52,9 @@ when first used.
 
 Not available on Windows (disabled at build time):
 - Wayland, Hyprland, X11 and i3 integrations. `Quickshell.Wayland` can still be imported so
-  shared configs load: `WlrLayershell`, `WlrLayer`, `WlrKeyboardFocus`, `BackgroundEffect`,
-  `IdleInhibitor` and `IdleMonitor` exist but do nothing.
+  shared configs load: `BackgroundEffect.blurRegion` sets `BlurBehind.region`, while
+  `WlrLayershell`, `WlrLayer`, `WlrKeyboardFocus`, `IdleInhibitor` and `IdleMonitor` exist but
+  do nothing.
 - Services: PipeWire, PAM, Polkit, greetd
 - Network
 - Crash reporter, qmlls tooling support
