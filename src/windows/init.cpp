@@ -4,6 +4,8 @@
 #include <qstring.h>
 
 #include "../core/plugin.hpp"
+#include "../window/proxywindow.hpp"
+#include "input_mask.hpp"
 #include "panel_window.hpp"
 
 namespace {
@@ -13,7 +15,10 @@ class WindowsPlugin: public QsEnginePlugin {
 
 	bool applies() override { return QGuiApplication::platformName() == "windows"; }
 
-	void init() override { WinPanelWindow::installNativeEventFilter(); }
+	void init() override {
+		WinPanelWindow::installNativeEventFilter();
+		ProxyWindowBase::applyInputMask = &qs::windows::applyInputMask;
+	}
 
 	void registerTypes() override {
 		qmlRegisterType<WinPanelInterface>("Quickshell._WindowsOverlay", 1, 0, "PanelWindow");
