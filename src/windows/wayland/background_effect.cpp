@@ -1,8 +1,10 @@
 #include "background_effect.hpp"
 
 #include <qobject.h>
+#include <qqml.h>
 
 #include "../../core/region.hpp"
+#include "../blur_behind.hpp"
 
 namespace qs::windows::wayland {
 
@@ -14,6 +16,11 @@ BackgroundEffect* BackgroundEffect::qmlAttachedProperties(QObject* object) {
 void BackgroundEffect::setBlurRegion(PendingRegion* region) {
 	if (region == this->mBlurRegion) return;
 	this->mBlurRegion = region;
+
+	// Null when not attached to a window.
+	auto* blur = qobject_cast<BlurBehind*>(qmlAttachedPropertiesObject<BlurBehind>(this->parent()));
+	if (blur) blur->setRegion(region);
+
 	emit this->blurRegionChanged();
 }
 
