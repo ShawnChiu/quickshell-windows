@@ -9,12 +9,12 @@
 
 namespace qs::windows::wayland {
 
-// Inert, see layershell.hpp.
+// Forwards blurRegion to Quickshell.Windows.BlurBehind, so shared configs blur on Windows too.
 class BackgroundEffect: public QObject {
 	Q_OBJECT;
 	Q_PROPERTY(PendingRegion* blurRegion READ blurRegion WRITE setBlurRegion NOTIFY blurRegionChanged);
 	QML_ELEMENT;
-	QML_UNCREATABLE("BackgroundEffect is not available on Windows.");
+	QML_UNCREATABLE("BackgroundEffect can only be used as an attached object.");
 	QML_ATTACHED(BackgroundEffect);
 
 public:
