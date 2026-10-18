@@ -361,6 +361,18 @@ void DesktopEntryScanner::run() {
 		this->scanDirectory(QDir(path), QString(), scanResults);
 	}
 
+#ifdef Q_OS_WIN
+	// The Start menu often holds an app twice under one name (a per-user and an
+	// all-users copy, or two installs). Only the last scanned, the user's, is listed.
+	auto lastByName = QHash<QString, qsizetype>();
+	for (qsizetype i = 0; i < scanResults.size(); i++) {
+		if (scanResults[i].noDisplay) continue;
+		auto name = scanResults[i].name.toLower();
+		if (auto it = lastByName.find(name); it != lastByName.end()) scanResults[*it].noDisplay = true;
+		lastByName.insert(name, i);
+	}
+#endif
+
 	QMetaObject::invokeMethod(
 	    this->manager,
 	    "onScanCompleted",
@@ -382,6 +394,14 @@ void DesktopEntryScanner::scanDirectory(
 			this->scanDirectory(QDir(entry.absoluteFilePath()), subdirPrefix, entries);
 		} else if (entry.isFile()) {
 			auto path = entry.filePath();
+#ifdef Q_OS_WIN
+			if (path.endsWith(".lnk", Qt::CaseInsensitive)) {
+				auto basename = QFileInfo(entry.fileName()).completeBaseName();
+				auto id = idPrefix.isEmpty() ? basename : idPrefix + '-' + basename;
+				entries.append(DesktopEntry::parseShortcut(id, path));
+				continue;
+			}
+#endif
 			if (!path.endsWith(".desktop")) {
 				qCDebug(logDesktopEntry) << "Skipping file" << path << "as it has no .desktop extension";
 				continue;
@@ -484,6 +504,18 @@ const QStringList& DesktopEntryManager::desktopPaths() {
 	static const auto paths = []() {
 		auto dataPaths = QStringList();
 
+#ifdef Q_OS_WIN
+		// The Start menu's shortcuts, the user's over everyone's, as XDG_DATA_HOME
+		// is over XDG_DATA_DIRS.
+		auto appData = qEnvironmentVariable("APPDATA");
+		if (!appData.isEmpty()) dataPaths.append(appData + "/Microsoft/Windows/Start Menu/Programs");
+
+		auto programData = qEnvironmentVariable("ProgramData");
+		if (!programData.isEmpty())
+			dataPaths.append(programData + "/Microsoft/Windows/Start Menu/Programs");
+
+		for (auto& path: dataPaths) path = QDir::fromNativeSeparators(path);
+#else
 		auto dataHome = qEnvironmentVariable("XDG_DATA_HOME");
 		if (dataHome.isEmpty() && qEnvironmentVariableIsSet("HOME"))
 			dataHome = qEnvironmentVariable("HOME") + "/.local/share";
@@ -495,6 +527,7 @@ const QStringList& DesktopEntryManager::desktopPaths() {
 		for (const auto& dir: dataDirs.split(':', Qt::SkipEmptyParts)) {
 			dataPaths.append(dir + "/applications");
 		}
+#endif
 
 		return dataPaths;
 	}();
