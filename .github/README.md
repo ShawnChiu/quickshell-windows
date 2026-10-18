@@ -50,15 +50,22 @@ Windows specific (`import Quickshell.Windows`):
   and mute, and the default output and input. Volume and mute can be set on active endpoints,
   and setting `defaultOutput` or `defaultInput` changes the default for all roles, as Settings
   does. There is no PipeWire on Windows, so shared configs load a small file per platform.
+- `MediaSessions`: the media sessions Windows shows in its media flyout (`MediaSession`), with
+  track info, thumbnail, playback status, timeline and controls, and the current session. The
+  position is estimated between the app's reports. `activate` brings the app's window to the
+  front.
 
 Upstream services backed by Windows:
 - `Quickshell.Services.UPower` reports `PowerManager`'s batteries as laptop batteries
   (`displayDevice` is all of them combined), and `PowerProfiles` maps to the power mode: Best
   power efficiency, Balanced and Best performance. Peripheral batteries are not listed, and there
   are no profile holds or degradation reasons. Tested on a desktop only (no battery).
+- `Quickshell.Services.Mpris` lists `MediaSessions` as players: track info, art (as an image
+  url), position, length, playback state, loop, shuffle and rate, and `raise` activates the
+  app's window. Players cannot quit, go fullscreen, open uris or report their volume.
 
 Built but inert (they talk to DBus, and Windows has no session bus): `Quickshell.Bluetooth`,
-`Quickshell.Services.Mpris`, `SystemTray` and `Notifications` load and stay empty, the
+`Quickshell.Services.SystemTray` and `Notifications` load and stay empty, the
 same as on Linux with the service not running. Each logs one "Could not connect to DBus" warning
 when first used.
 
