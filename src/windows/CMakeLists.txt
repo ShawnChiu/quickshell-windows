@@ -6,6 +6,7 @@ qt_add_library(quickshell-windows STATIC
 	backdrop.cpp
 	power.cpp
 	audio.cpp
+	media.cpp
 )
 
 qt_add_qml_module(quickshell-windows
@@ -35,4 +36,8 @@ endif()
 # Services whose upstream API maps onto Windows replace the DBus versions under the same URI.
 if (NOT SERVICE_UPOWER)
 	add_subdirectory(upower)
+endif()
+
+if (NOT SERVICE_MPRIS)
+	add_subdirectory(mpris)
 endif()
