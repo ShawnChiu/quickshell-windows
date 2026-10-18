@@ -15,6 +15,7 @@
 #include <qpair.h>
 #include <qproperty.h>
 #include <qscopeguard.h>
+#include <qset.h>
 #include <qtenvironmentvariables.h>
 #include <qthreadpool.h>
 #include <qtmetamacros.h>
@@ -351,6 +352,19 @@ DesktopEntryScanner::DesktopEntryScanner(DesktopEntryManager* manager): manager(
 }
 
 void DesktopEntryScanner::run() {
+#ifdef Q_OS_WIN
+	auto scanResults = DesktopEntry::scanAppsFolder();
+
+	// An app installed twice (by scoop and by its installer) is listed twice
+	// under one name. Only the first is shown.
+	auto names = QSet<QString>();
+	for (auto& entry: scanResults) {
+		if (entry.noDisplay) continue;
+		auto name = entry.name.toLower();
+		if (names.contains(name)) entry.noDisplay = true;
+		else names.insert(name);
+	}
+#else
 	const auto& desktopPaths = DesktopEntryManager::desktopPaths();
 	auto scanResults = QList<ParsedDesktopEntryData>();
 
@@ -359,17 +373,6 @@ void DesktopEntryScanner::run() {
 		if (!file.isDir()) continue;
 
 		this->scanDirectory(QDir(path), QString(), scanResults);
-	}
-
-#ifdef Q_OS_WIN
-	// The Start menu often holds an app twice under one name (a per-user and an
-	// all-users copy, or two installs). Only the last scanned, the user's, is listed.
-	auto lastByName = QHash<QString, qsizetype>();
-	for (qsizetype i = 0; i < scanResults.size(); i++) {
-		if (scanResults[i].noDisplay) continue;
-		auto name = scanResults[i].name.toLower();
-		if (auto it = lastByName.find(name); it != lastByName.end()) scanResults[*it].noDisplay = true;
-		lastByName.insert(name, i);
 	}
 #endif
 
@@ -394,14 +397,6 @@ void DesktopEntryScanner::scanDirectory(
 			this->scanDirectory(QDir(entry.absoluteFilePath()), subdirPrefix, entries);
 		} else if (entry.isFile()) {
 			auto path = entry.filePath();
-#ifdef Q_OS_WIN
-			if (path.endsWith(".lnk", Qt::CaseInsensitive)) {
-				auto basename = QFileInfo(entry.fileName()).completeBaseName();
-				auto id = idPrefix.isEmpty() ? basename : idPrefix + '-' + basename;
-				entries.append(DesktopEntry::parseShortcut(id, path));
-				continue;
-			}
-#endif
 			if (!path.endsWith(".desktop")) {
 				qCDebug(logDesktopEntry) << "Skipping file" << path << "as it has no .desktop extension";
 				continue;
