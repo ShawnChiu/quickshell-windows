@@ -17,15 +17,22 @@ qt_add_qml_module(quickshell-widgets
 		ClippingWrapperRectangleInternal.qml
 )
 
+# Direct3D is Qt's default graphics backend on Windows.
+if (WIN32)
+	set(QS_SHADER_SKIP NOMSL)
+else()
+	set(QS_SHADER_SKIP NOHLSL NOMSL)
+endif()
+
 qt6_add_shaders(quickshell-widgets "widgets-cliprect"
-	NOHLSL NOMSL BATCHABLE PRECOMPILE OPTIMIZED QUIET
+	${QS_SHADER_SKIP} BATCHABLE PRECOMPILE OPTIMIZED QUIET
 	PREFIX "/Quickshell/Widgets"
 	FILES shaders/cliprect.frag
 	OUTPUTS shaders/cliprect.frag.qsb
 )
 
 qt6_add_shaders(quickshell-widgets "widgets-cliprect-ub"
-	NOHLSL NOMSL BATCHABLE PRECOMPILE OPTIMIZED QUIET
+	${QS_SHADER_SKIP} BATCHABLE PRECOMPILE OPTIMIZED QUIET
 	PREFIX "/Quickshell/Widgets"
 	FILES shaders/cliprect.frag
 	OUTPUTS shaders/cliprect-ub.frag.qsb
