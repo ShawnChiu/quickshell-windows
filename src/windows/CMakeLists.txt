@@ -4,6 +4,7 @@ qt_add_library(quickshell-windows STATIC
 	hwnd.cpp
 	blur_behind.cpp
 	backdrop.cpp
+	power.cpp
 )
 
 qt_add_qml_module(quickshell-windows
@@ -28,4 +29,9 @@ target_link_libraries(quickshell PRIVATE quickshell-windowsplugin quickshell-win
 # Quickshell.Wayland is only provided as a stand-in when the real module is not built.
 if (NOT WAYLAND)
 	add_subdirectory(wayland)
+endif()
+
+# Services whose upstream API maps onto Windows replace the DBus versions under the same URI.
+if (NOT SERVICE_UPOWER)
+	add_subdirectory(upower)
 endif()
