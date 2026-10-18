@@ -93,8 +93,9 @@ public:
 
 	static ParsedDesktopEntryData parseText(const QString& id, const QString& text);
 #ifdef Q_OS_WIN
-	// A Start menu shortcut (.lnk) as an Application entry, in desktopentry_win.cpp.
-	static ParsedDesktopEntryData parseShortcut(const QString& id, const QString& path);
+	// The Start menu's apps (the shell's Apps folder) as Application entries,
+	// in desktopentry_win.cpp.
+	static QList<ParsedDesktopEntryData> scanAppsFolder();
 #endif
 	void updateState(const ParsedDesktopEntryData& newState);
 
