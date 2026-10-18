@@ -664,7 +664,8 @@ void ProxyWindowBase::onPolished() {
 		}
 
 		this->window->setFlag(Qt::WindowTransparentForInput, this->mMask != nullptr && mask.isEmpty());
-		this->window->setMask(mask);
+		if (ProxyWindowBase::applyInputMask) ProxyWindowBase::applyInputMask(this->window, mask);
+		else this->window->setMask(mask);
 
 		this->pendingPolish.inputMask = false;
 	}

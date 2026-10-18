@@ -5,6 +5,7 @@ qt_add_library(quickshell-windows STATIC
 	blur_behind.cpp
 	backdrop.cpp
 	wallpaper_blur.cpp
+	input_mask.cpp
 	power.cpp
 	audio.cpp
 	media.cpp

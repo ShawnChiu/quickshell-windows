@@ -30,6 +30,8 @@ Tested:
   name). `execute()` opens the shortcut through Explorer, and `startupClass` is the target's
   file name without `.exe`, so `heuristicLookup` matches window managers' app ids. Store (UWP)
   apps have no shortcut there and are not listed.
+- A window's `mask` only limits input, as on Wayland: what the window draws outside it still
+  shows (`QWindow::setMask` would clip it on Windows), and clicks there reach whatever is below.
 - A `PanelWindow` that becomes `focusable` while shown takes the foreground, as `Exclusive`
   keyboard focus does on Wayland, and hands it back to the previous window when it stops.
 - `SocketServer` and `Socket` over named pipes (a `path` without `\\.\pipe\` is a pipe name)
