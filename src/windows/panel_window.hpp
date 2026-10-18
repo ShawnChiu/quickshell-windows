@@ -120,6 +120,8 @@ private:
 	Qt::Edge lastAppBarEdge = static_cast<Qt::Edge>(0);
 	bool fullscreenAppActive = false;
 	bool dimensionsUpdateQueued = false;
+	// The window that had the foreground before becoming focusable took it.
+	quintptr focusReturnHwnd = 0;
 
 	// clang-format off
 	Q_OBJECT_BINDABLE_PROPERTY_WITH_ARGS(WinPanelWindow, bool, bAboveWindows, true, &WinPanelWindow::aboveWindowsChanged);
