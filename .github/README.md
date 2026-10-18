@@ -23,7 +23,15 @@ Early work in progress.
 Tested:
 - Loading QML shells, hot reload
 - `PanelWindow` placement and reserving screen space through the Win32 AppBar API
-- `Process`, `IpcHandler`
+- `Process`, `IpcHandler`. Stopping a process (`running = false`) terminates it, as `signal()`
+  does: console programs never see the polite close Qt sends. A running process is also ended
+  when quickshell exits or crashes; what it starts is not.
+- `DesktopEntries` lists the Start menu's shortcuts (`.lnk`, the user's over everyone's, one per
+  name). `execute()` opens the shortcut through Explorer, and `startupClass` is the target's
+  file name without `.exe`, so `heuristicLookup` matches window managers' app ids. Store (UWP)
+  apps have no shortcut there and are not listed.
+- A `PanelWindow` that becomes `focusable` while shown takes the foreground, as `Exclusive`
+  keyboard focus does on Wayland, and hands it back to the previous window when it stops.
 - `SocketServer` and `Socket` over named pipes (a `path` without `\\.\pipe\` is a pipe name)
 - `qs ipc`, `qs list`, `qs kill`, `qs -d` (daemonize)
 
@@ -49,7 +57,6 @@ Not available on Windows (disabled at build time):
 - Services: PipeWire, PAM, Polkit, greetd
 - Network
 - Crash reporter, qmlls tooling support
-- `DesktopEntries` (always empty)
 
 Known limitations:
 - `quickshell.exe` is a console program, so starting it directly opens a console window.
