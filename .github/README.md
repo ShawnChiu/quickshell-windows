@@ -22,10 +22,12 @@ Tested:
 - `Process`, `IpcHandler`. Stopping a process (`running = false`) terminates it, as `signal()`
   does: console programs never see the polite close Qt sends. A running process is also ended
   when quickshell exits or crashes; what it starts is not.
-- `DesktopEntries` lists the Start menu's shortcuts (`.lnk`, the user's over everyone's, one per
-  name). `execute()` opens the shortcut through Explorer, and `startupClass` is the target's
-  file name without `.exe`, so `heuristicLookup` matches window managers' app ids. Store (UWP)
-  apps have no shortcut there and are not listed.
+- `DesktopEntries` lists the Start menu's apps, as its All apps list does (the shell's Apps
+  folder): programs, Store (UWP) apps, File Explorer and Settings, and URL shortcuts such as
+  Steam's games, one per name. Names are in the display language; a shortcut's file name, when
+  it differs, is a keyword. `execute()` runs the app through Explorer, and `startupClass` is the
+  target's file name without `.exe`, so `heuristicLookup` matches window managers' app ids. The
+  list is rescanned when the Start menu's folders change, not when a Store app is installed.
 - A window's `mask` only limits input, as on Wayland: what the window draws outside it still
   shows (`QWindow::setMask` would clip it on Windows), and clicks there reach whatever is below.
 - A `PanelWindow` that becomes `focusable` while shown takes the foreground, as `Exclusive`
