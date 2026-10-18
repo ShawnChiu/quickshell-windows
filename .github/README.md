@@ -43,7 +43,12 @@ Windows specific (`import Quickshell.Windows`):
 - `BlurBehind.region`: blurs what is behind part of a window, and stays blurred while the window
   is unfocused, unlike Mica and Acrylic. `radius` and `saturation` default to Acrylic's. Like
   Windows' own blur it turns solid while Transparency effects is off or battery or energy saver
-  is on.
+  is on. With `xray` set it shows the wallpaper blurred instead, as niri's xray does: every xray
+  window shows the same blur, so windows that meet show no seam, and windows in between don't
+  show through.
+- `WallpaperBlur`: the parameters of that blurred wallpaper, niri's `blur` section (`passes`,
+  `offset`, `saturation`, `noise`, niri's defaults). The wallpaper is blurred once per monitor
+  with niri's dual Kawase passes, and again when it or the parameters change.
 - `PowerManager`: power supply, energy saver, batteries (`Battery`, capacities in mWh) and the
   power mode (Settings > System > Power), which can also be set.
 - `Audio`: the outputs and inputs (`AudioEndpoint`) with their name, form factor, state, volume
@@ -71,7 +76,8 @@ when first used.
 
 Not available on Windows (disabled at build time):
 - Wayland, Hyprland, X11 and i3 integrations. `Quickshell.Wayland` can still be imported so
-  shared configs load: `BackgroundEffect.blurRegion` sets `BlurBehind.region`, while
+  shared configs load: `BackgroundEffect.blurRegion` sets `BlurBehind.region` with `xray`
+  (niri's default), while
   `WlrLayershell`, `WlrLayer`, `WlrKeyboardFocus`, `IdleInhibitor` and `IdleMonitor` exist but
   do nothing.
 - Services: PipeWire, PAM, Polkit, greetd

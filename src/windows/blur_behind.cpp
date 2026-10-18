@@ -108,6 +108,13 @@ void BlurBehind::setSaturation(qreal saturation) {
 	emit this->saturationChanged();
 }
 
+void BlurBehind::setXray(bool xray) {
+	if (xray == this->mXray) return;
+	this->mXray = xray;
+	this->updateRegion();
+	emit this->xrayChanged();
+}
+
 void BlurBehind::onRegionDestroyed() {
 	this->mRegion = nullptr;
 	this->updateRegion();
@@ -141,6 +148,7 @@ void BlurBehind::onWindowPolished() {
 	backdrop->claim(this);
 	backdrop->setRadius(this->mRadius * scale);
 	backdrop->setSaturation(this->mSaturation);
+	backdrop->setXray(this->mXray);
 	backdrop->setRegion(region);
 }
 

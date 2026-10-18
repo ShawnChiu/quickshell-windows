@@ -33,6 +33,9 @@ public:
 	// Standard deviation of the blur in device pixels.
 	void setRadius(qreal radius);
 	void setSaturation(qreal saturation);
+	// Shows the monitor's blurred wallpaper (WallpaperBlurService) instead of blurring what is
+	// behind. Radius and saturation are then the wallpaper's.
+	void setXray(bool xray);
 
 	// Keeps the backdrop until the owner releases it. A reload claims it again before the
 	// release takes effect, so the blur stays up across the reload.
@@ -56,12 +59,14 @@ private:
 	void ensureCreated();
 	void updateShape();
 	void updateBrush();
+	void updateXrayOffset();
 
 	QWindow* window;
 	QPointer<QObject> owner;
 	QRegion region;
 	qreal radius = 0;
 	qreal saturation = 1;
+	bool xray = false;
 
 	std::unique_ptr<Native> native;
 };
