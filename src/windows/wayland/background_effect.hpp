@@ -10,6 +10,7 @@
 namespace qs::windows::wayland {
 
 // Forwards blurRegion to Quickshell.Windows.BlurBehind, so shared configs blur on Windows too.
+// Xray, as niri defaults to: the wallpaper blurred with Quickshell.Windows.WallpaperBlur.
 class BackgroundEffect: public QObject {
 	Q_OBJECT;
 	Q_PROPERTY(PendingRegion* blurRegion READ blurRegion WRITE setBlurRegion NOTIFY blurRegionChanged);
