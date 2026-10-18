@@ -4,6 +4,7 @@ qt_add_library(quickshell-windows STATIC
 	hwnd.cpp
 	blur_behind.cpp
 	backdrop.cpp
+	wallpaper_blur.cpp
 	power.cpp
 	audio.cpp
 	media.cpp
@@ -21,7 +22,7 @@ install_qml_module(quickshell-windows)
 
 add_library(quickshell-windows-init OBJECT init.cpp)
 
-target_link_libraries(quickshell-windows PRIVATE Qt::Quick shell32 user32 gdi32 advapi32 ole32 dwmapi dxguid windowsapp CoreMessaging)
+target_link_libraries(quickshell-windows PRIVATE Qt::Quick shell32 user32 gdi32 advapi32 ole32 dwmapi dxguid d2d1 d3d11 windowsapp CoreMessaging)
 target_link_libraries(quickshell-windows-init PRIVATE Qt::Quick Qt::Qml)
 
 qs_module_pch(quickshell-windows SET large)

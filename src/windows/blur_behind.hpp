@@ -22,6 +22,10 @@ namespace qs::windows {
 ///
 /// The defaults follow Acrylic's recipe.
 ///
+/// With @@xray set the window shows the desktop wallpaper blurred instead, as niri's xray does.
+/// Every xray window shows the same blurred wallpaper, so windows that meet show no seam, and
+/// whatever is between the window and the wallpaper doesn't show through.
+///
 /// #### Example
 /// ```qml
 /// @@Quickshell.PanelWindow {
@@ -40,6 +44,9 @@ class BlurBehind: public QObject {
 	Q_PROPERTY(qreal radius READ radius WRITE setRadius NOTIFY radiusChanged);
 	/// Saturation applied after the blur, 1 leaves colours as they are. Defaults to 1.25.
 	Q_PROPERTY(qreal saturation READ saturation WRITE setSaturation NOTIFY saturationChanged);
+	/// Show the wallpaper blurred with @@WallpaperBlur's parameters instead of blurring what is
+	/// behind the window. @@radius and @@saturation are then unused. Defaults to false.
+	Q_PROPERTY(bool xray READ xray WRITE setXray NOTIFY xrayChanged);
 	// clang-format on
 	QML_ELEMENT;
 	QML_UNCREATABLE("BlurBehind can only be used as an attached object.");
@@ -59,12 +66,16 @@ public:
 	[[nodiscard]] qreal saturation() const { return this->mSaturation; }
 	void setSaturation(qreal saturation);
 
+	[[nodiscard]] bool xray() const { return this->mXray; }
+	void setXray(bool xray);
+
 	static BlurBehind* qmlAttachedProperties(QObject* object);
 
 signals:
 	void regionChanged();
 	void radiusChanged();
 	void saturationChanged();
+	void xrayChanged();
 
 private slots:
 	void onWindowConnected();
@@ -81,6 +92,7 @@ private:
 	PendingRegion* mRegion = nullptr;
 	qreal mRadius = 30;
 	qreal mSaturation = 1.25;
+	bool mXray = false;
 };
 
 } // namespace qs::windows

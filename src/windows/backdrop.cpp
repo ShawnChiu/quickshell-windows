@@ -1,4 +1,5 @@
 // C++/WinRT comes before Qt, whose keyword macros it doesn't expect.
+// clang-format off
 #include <windows.h>
 
 #include <d2d1effects.h>
@@ -13,12 +14,13 @@
 #include <winrt/Windows.UI.Composition.h>
 #include <winrt/Windows.UI.h>
 
+#include "composition.hpp"
+// clang-format on
+
 #include <array>
 #include <cstring>
 #include <utility>
 #include <vector>
-
-#include "backdrop.hpp"
 
 #include <qabstractnativeeventfilter.h>
 #include <qbytearray.h>
@@ -30,12 +32,15 @@
 #include <qloggingcategory.h>
 #include <qnamespace.h>
 #include <qobject.h>
+#include <qrect.h>
 #include <qregion.h>
 #include <qtimer.h>
 #include <qtypes.h>
 #include <qwindow.h>
 
 #include "../core/logcat.hpp"
+#include "backdrop.hpp"
+#include "wallpaper_blur.hpp"
 
 namespace wuc = winrt::Windows::UI::Composition;
 namespace wge = winrt::Windows::Graphics::Effects;
@@ -50,8 +55,10 @@ namespace {
 QS_LOGGING_CATEGORY(logBackdrop, "quickshell.windows.backdrop", QtWarningMsg);
 
 // Not in the SDK this builds with, and the SDK's GUID_POWER_SAVING_STATUS needs a library.
-constexpr GUID BATTERY_SAVER_STATUS = {0xe00958c0, 0xc213, 0x4ace, {0xac, 0x77, 0xfe, 0xcc, 0xed, 0x2e, 0xee, 0xa5}};
-constexpr GUID ENERGY_SAVER_STATUS = {0x550e8400, 0xe29b, 0x41d4, {0xa7, 0x16, 0x44, 0x66, 0x55, 0x44, 0x00, 0x00}};
+constexpr GUID BATTERY_SAVER_STATUS =
+    {0xe00958c0, 0xc213, 0x4ace, {0xac, 0x77, 0xfe, 0xcc, 0xed, 0x2e, 0xee, 0xa5}};
+constexpr GUID ENERGY_SAVER_STATUS =
+    {0x550e8400, 0xe29b, 0x41d4, {0xa7, 0x16, 0x44, 0x66, 0x55, 0x44, 0x00, 0x00}};
 
 // A Direct2D effect described for Windows.UI.Composition, the part of Win2D it needs.
 // Properties are indexed by their Direct2D property index.
@@ -87,8 +94,10 @@ struct D2DEffect
 		return S_OK;
 	}
 
-	HRESULT __stdcall GetProperty(UINT index, ABI::Windows::Foundation::IPropertyValue** value) noexcept
-	    override {
+	HRESULT __stdcall GetProperty(
+	    UINT index,
+	    ABI::Windows::Foundation::IPropertyValue** value
+	) noexcept override {
 		if (index >= this->properties.size()) return E_INVALIDARG;
 		*value = this->properties[index].as<ABI::Windows::Foundation::IPropertyValue>().detach();
 		return S_OK;
@@ -99,7 +108,10 @@ struct D2DEffect
 		return S_OK;
 	}
 
-	HRESULT __stdcall GetSource(UINT index, abi_wge::IGraphicsEffectSource** source) noexcept override {
+	HRESULT __stdcall GetSource(
+	    UINT index,
+	    abi_wge::IGraphicsEffectSource** source
+	) noexcept override {
 		if (index != 0) return E_INVALIDARG;
 		*source = this->source.as<abi_wge::IGraphicsEffectSource>().detach();
 		return S_OK;
@@ -142,6 +154,36 @@ DWORD readPersonalize(const wchar_t* name, DWORD fallback) {
 	return status == ERROR_SUCCESS ? value : fallback;
 }
 
+QHash<HWND, BlurBackdrop*>& targets() {
+	static QHash<HWND, BlurBackdrop*> targets; // NOLINT
+	return targets;
+}
+
+class TargetEventFilter: public QAbstractNativeEventFilter {
+public:
+	bool
+	nativeEventFilter(const QByteArray& /*eventType*/, void* message, qintptr* /*result*/) override {
+		auto* msg = static_cast<MSG*>(message);
+
+		if (msg->message == WM_WINDOWPOSCHANGED) {
+			if (auto* backdrop = targets().value(msg->hwnd)) backdrop->sync();
+		}
+
+		return false;
+	}
+};
+
+// The rect of the window's monitor, in physical pixels.
+QRect monitorRect(HWND hwnd) {
+	auto info = MONITORINFO {.cbSize = sizeof(MONITORINFO)};
+	if (!GetMonitorInfoW(MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST), &info)) return {};
+
+	const auto& r = info.rcMonitor;
+	return {r.left, r.top, r.right - r.left, r.bottom - r.top};
+}
+
+} // namespace
+
 wuc::Compositor compositor() {
 	// Leaked: these can't be released after COM shuts down at exit.
 	static void* instance = [] {
@@ -165,27 +207,6 @@ wuc::Compositor compositor() {
 	return compositor;
 }
 
-QHash<HWND, BlurBackdrop*>& targets() {
-	static QHash<HWND, BlurBackdrop*> targets; // NOLINT
-	return targets;
-}
-
-class TargetEventFilter: public QAbstractNativeEventFilter {
-public:
-	bool nativeEventFilter(const QByteArray& /*eventType*/, void* message, qintptr* /*result*/)
-	    override {
-		auto* msg = static_cast<MSG*>(message);
-
-		if (msg->message == WM_WINDOWPOSCHANGED) {
-			if (auto* backdrop = targets().value(msg->hwnd)) backdrop->sync();
-		}
-
-		return false;
-	}
-};
-
-} // namespace
-
 struct BlurBackdrop::Native {
 	HWND hwnd = nullptr;
 	// The Qt window.
@@ -205,6 +226,11 @@ struct BlurBackdrop::Native {
 	wuc::CompositionVisualSurface surface {nullptr};
 	wuc::CompositionColorBrush white {nullptr};
 	std::vector<wuc::SpriteVisual> rects;
+
+	// The xray brush, showing the part of its monitor's blurred wallpaper under the window.
+	wuc::CompositionSurfaceBrush xrayBrush {nullptr};
+	void* xraySurface = nullptr;
+	QRect xrayMonitor;
 
 	static LRESULT CALLBACK windowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 };
@@ -229,7 +255,8 @@ const wchar_t* windowClass() {
 
 LRESULT CALLBACK
 BlurBackdrop::Native::windowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
-	auto* backdrop = reinterpret_cast<BlurBackdrop*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA)); // NOLINT
+	auto* backdrop =
+	    reinterpret_cast<BlurBackdrop*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA)); // NOLINT
 
 	switch (msg) {
 	case WM_NCHITTEST: return HTTRANSPARENT;
@@ -237,7 +264,8 @@ BlurBackdrop::Native::windowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 	case WM_SETTINGCHANGE:
 		// Sent when "Transparency effects" or the app theme changes.
 		if (backdrop && lParam != 0
-		    && std::wcscmp(reinterpret_cast<const wchar_t*>(lParam), L"ImmersiveColorSet") == 0) // NOLINT
+		    && std::wcscmp(reinterpret_cast<const wchar_t*>(lParam), L"ImmersiveColorSet")
+		           == 0) // NOLINT
 		{
 			backdrop->updateEffects();
 		}
@@ -324,6 +352,25 @@ void BlurBackdrop::setSaturation(qreal saturation) {
 	this->updateBrush();
 }
 
+void BlurBackdrop::setXray(bool xray) {
+	if (xray == this->xray) return;
+	this->xray = xray;
+
+	if (xray) {
+		QObject::connect(
+		    WallpaperBlurService::instance(),
+		    &WallpaperBlurService::surfacesChanged,
+		    this,
+		    &BlurBackdrop::updateBrush,
+		    Qt::UniqueConnection
+		);
+	} else {
+		QObject::disconnect(WallpaperBlurService::instance(), nullptr, this, nullptr);
+	}
+
+	this->updateBrush();
+}
+
 void BlurBackdrop::claim(QObject* owner) { this->owner = owner; }
 
 void BlurBackdrop::release(QObject* owner) {
@@ -403,7 +450,8 @@ void BlurBackdrop::ensureCreated() {
 
 	try {
 		auto compositor = qs::windows::compositor();
-		auto interop = compositor.as<ABI::Windows::UI::Composition::Desktop::ICompositorDesktopInterop>();
+		auto interop =
+		    compositor.as<ABI::Windows::UI::Composition::Desktop::ICompositorDesktopInterop>();
 
 		winrt::check_hresult(interop->CreateDesktopWindowTarget(
 		    n->hwnd,
@@ -499,6 +547,33 @@ void BlurBackdrop::updateBrush() {
 			return;
 		}
 
+		// Until the wallpaper's first blur is done, what is behind is blurred instead.
+		if (this->xray && n->target) {
+			auto monitor = monitorRect(n->target);
+			auto* surface = WallpaperBlurService::instance()->surface(monitor);
+			n->xrayMonitor = monitor;
+
+			if (surface) {
+				if (surface != n->xraySurface || !n->xrayBrush) {
+					wuc::ICompositionSurface source {nullptr};
+					winrt::copy_from_abi(source, surface);
+
+					n->xrayBrush = compositor.CreateSurfaceBrush(source);
+					n->xrayBrush.Stretch(wuc::CompositionStretch::None);
+					n->xrayBrush.HorizontalAlignmentRatio(0);
+					n->xrayBrush.VerticalAlignmentRatio(0);
+					n->xraySurface = surface;
+				}
+
+				this->updateXrayOffset();
+				n->mask.Source(n->xrayBrush);
+				return;
+			}
+		}
+
+		n->xrayBrush = nullptr;
+		n->xraySurface = nullptr;
+
 		wge::IGraphicsEffect effect = winrt::make<D2DEffect>(
 		    CLSID_D2D1GaussianBlur,
 		    std::vector<Inspectable> {
@@ -533,12 +608,25 @@ void BlurBackdrop::updateBrush() {
 	}
 }
 
+void BlurBackdrop::updateXrayOffset() {
+	auto* n = this->native.get();
+	if (!n->xrayBrush || !n->target) return;
+
+	RECT rect;
+	GetWindowRect(n->target, &rect);
+
+	n->xrayBrush.Offset({
+	    static_cast<float>(n->xrayMonitor.left() - rect.left),
+	    static_cast<float>(n->xrayMonitor.top() - rect.top),
+	});
+}
+
 void BlurBackdrop::sync() {
 	auto* n = this->native.get();
 	if (!n->hwnd) return;
 
-	auto shown = n->target && !this->region.isEmpty() && IsWindowVisible(n->target)
-	          && !IsIconic(n->target);
+	auto shown =
+	    n->target && !this->region.isEmpty() && IsWindowVisible(n->target) && !IsIconic(n->target);
 
 	if (!shown) {
 		if (IsWindowVisible(n->hwnd)) ShowWindow(n->hwnd, SW_HIDE);
@@ -560,6 +648,11 @@ void BlurBackdrop::sync() {
 		n->surface.SourceSize(size);
 		n->width = width;
 		n->height = height;
+	}
+
+	if (this->xray) {
+		if (monitorRect(n->target) != n->xrayMonitor) this->updateBrush();
+		else this->updateXrayOffset();
 	}
 
 	// Into the Qt window's band first: placing it after a topmost window doesn't make it topmost.

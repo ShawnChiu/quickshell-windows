@@ -19,7 +19,11 @@ void BackgroundEffect::setBlurRegion(PendingRegion* region) {
 
 	// Null when not attached to a window.
 	auto* blur = qobject_cast<BlurBehind*>(qmlAttachedPropertiesObject<BlurBehind>(this->parent()));
-	if (blur) blur->setRegion(region);
+	if (blur) {
+		// niri's default for a surface's background effect.
+		blur->setXray(true);
+		blur->setRegion(region);
+	}
 
 	emit this->blurRegionChanged();
 }
