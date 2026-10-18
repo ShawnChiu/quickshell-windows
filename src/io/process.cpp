@@ -46,7 +46,13 @@ bool Process::isRunning() const { return this->process != nullptr; }
 void Process::setRunning(bool running) {
 	this->targetRunning = running;
 	if (running) this->startProcessIfReady();
+#ifdef Q_OS_WIN
+	// QProcess::terminate only posts WM_CLOSE, which console programs never see.
+	// TerminateProcess, as platform::sendSignal does for SIGTERM.
+	else if (this->isRunning()) this->process->kill();
+#else
 	else if (this->isRunning()) this->process->terminate();
+#endif
 }
 
 QVariant Process::processId() const {
@@ -271,6 +277,9 @@ void Process::setupEnvironment(QProcess* process) {
 }
 
 void Process::onStarted() {
+#ifdef Q_OS_WIN
+	qs::platform::bindChildLifetime(this->process->processId());
+#endif
 	emit this->processIdChanged();
 	emit this->runningChanged();
 	emit this->started();
