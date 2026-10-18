@@ -46,6 +46,11 @@ QString defaultRuntimeDir();
 bool sendSignal(qint64 pid, int signal);
 
 #ifdef Q_OS_WIN
+/// Makes a child process die with this one, which unix gets from SIGPIPE on its
+/// next write: the child joins a kill-on-close job. Its own children break away,
+/// so whatever it launches outlives us.
+void bindChildLifetime(qint64 pid);
+
 /// Windows has no fork(), so daemonizing relaunches the current command line as a process
 /// detached from the console. The child receives the write end of a pipe through the
 /// `pipeEnv` environment variable (see takeDaemonPipe) and reports its startup status into it.
