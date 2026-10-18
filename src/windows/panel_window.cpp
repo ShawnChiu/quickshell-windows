@@ -30,6 +30,7 @@
 #include "../core/types.hpp"
 #include "../window/panelinterface.hpp"
 #include "../window/proxywindow.hpp"
+#include "hwnd.hpp"
 
 namespace {
 
@@ -494,6 +495,26 @@ void WinPanelWindow::updateAboveWindows() {
 void WinPanelWindow::updateFocusable() {
 	if (this->window == nullptr) return;
 	this->window->setFlag(Qt::WindowDoesNotAcceptFocus, !this->bFocusable);
+
+	if (!this->window->isVisible() || this->window->handle() == nullptr) return;
+	auto* hwnd = reinterpret_cast<HWND>(this->window->winId()); // NOLINT
+
+	// Becoming focusable while shown takes the keyboard, as a layershell's
+	// Exclusive does when set: nothing else would activate a panel opened from
+	// a hotkey, since it can't be clicked into first. Losing it hands the
+	// keyboard back, as the compositor does when Exclusive is dropped.
+	if (this->bFocusable) {
+		auto* previous = GetForegroundWindow();
+		if (previous == hwnd) return;
+		this->focusReturnHwnd = reinterpret_cast<quintptr>(previous);
+		qs::windows::HwndActions::activate(reinterpret_cast<qint64>(hwnd));
+	} else {
+		auto* previous = reinterpret_cast<HWND>(this->focusReturnHwnd); // NOLINT
+		this->focusReturnHwnd = 0;
+		if (previous != nullptr && GetForegroundWindow() == hwnd && IsWindow(previous)) {
+			SetForegroundWindow(previous);
+		}
+	}
 }
 
 // WinPanelInterface
