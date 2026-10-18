@@ -222,6 +222,35 @@ bool sendSignal(qint64 pid, int signal) {
 	return ok;
 }
 
+void bindChildLifetime(qint64 pid) {
+	// Never closed: the handle goes with this process, and the job's children with it.
+	static HANDLE job = [] {
+		auto* job = CreateJobObjectW(nullptr, nullptr);
+		if (!job) return job;
+
+		JOBOBJECT_EXTENDED_LIMIT_INFORMATION info {};
+		info.BasicLimitInformation.LimitFlags =
+		    JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE | JOB_OBJECT_LIMIT_SILENT_BREAKAWAY_OK;
+
+		if (!SetInformationJobObject(job, JobObjectExtendedLimitInformation, &info, sizeof(info))) {
+			qWarning() << "Could not set up the child process job:" << GetLastError();
+			CloseHandle(job);
+			return static_cast<HANDLE>(nullptr);
+		}
+
+		return job;
+	}();
+
+	if (!job) return;
+
+	auto* process =
+	    OpenProcess(PROCESS_SET_QUOTA | PROCESS_TERMINATE, FALSE, static_cast<DWORD>(pid));
+	if (!process) return;
+
+	AssignProcessToJobObject(job, process);
+	CloseHandle(process);
+}
+
 int spawnDaemon(const char* pipeEnv) {
 	SECURITY_ATTRIBUTES attributes {};
 	attributes.nLength = sizeof(attributes);
