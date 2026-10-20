@@ -466,7 +466,8 @@ QString FileView::path() const { return this->state.path; }
 void FileView::setPath(const QString& path) {
 #ifdef Q_OS_WIN
 	// file:///C:/... has to drop the slash before the drive letter as well.
-	auto p = path.startsWith("file://") ? QUrl(path).toLocalFile() : path;
+	// updateWatchedFiles() only splits on '/'.
+	auto p = QDir::fromNativeSeparators(path.startsWith("file://") ? QUrl(path).toLocalFile() : path);
 #else
 	auto p = path.startsWith("file://") ? path.sliced(7) : path;
 #endif
