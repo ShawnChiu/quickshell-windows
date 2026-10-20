@@ -26,8 +26,10 @@ and media.
 
 ## Building
 
-Requirements: Visual Studio 2022 (Desktop C++ workload), CMake, Ninja, and Qt 6.8+ for
-`msvc2022_64` with the Qt Shader Tools module. Qt can be installed with
+Requirements: Visual Studio 2022 Build Tools (Desktop C++ workload), LLVM 19+ for `clang-cl`,
+CMake, Ninja, and Qt 6.8+ for `msvc2022_64` with the Qt Shader Tools module. Only `clang-cl` is
+supported, `cl` is rejected at configure time. LLVM comes from `winget install LLVM.LLVM` or the
+"C++ Clang tools for Windows" component in the Visual Studio Installer. Qt can be installed with
 [aqtinstall](https://github.com/miurahr/aqtinstall):
 
 ```powershell
@@ -35,11 +37,10 @@ winget install miurahr.aqtinstall
 aqt install-qt windows desktop 6.10.3 win64_msvc2022_64 -m qtshadertools -O C:\Qt
 ```
 
-From an "x64 Native Tools" prompt:
+From an "x64 Native Tools" prompt with LLVM's `bin` on `PATH`:
 
 ```powershell
-cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo `
-	-DCMAKE_PREFIX_PATH=C:/Qt/6.10.3/msvc2022_64 -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+cmake --preset windows -DCMAKE_PREFIX_PATH=C:/Qt/6.10.3/msvc2022_64
 cmake --build build
 ```
 
