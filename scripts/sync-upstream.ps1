@@ -1,26 +1,29 @@
-# Rebases the windows patch stack onto master the way Git for Windows does
-# ("merging-rebase"), so the branch only ever moves forward and is pushed
-# without --force.
+# Rebases the windows patch stack onto an upstream release the way Git for
+# Windows does ("merging-rebase"), so the branch only ever moves forward and is
+# pushed without --force.
 #
-#   scripts\sync-upstream.ps1 [-Fetch]
+#   scripts\sync-upstream.ps1 [-Fetch] [-Onto <ref>]
 #   scripts\sync-upstream.ps1 -Finish
 #
 # Each sync puts a marker merge at the bottom of the new stack: its first
-# parent is master, its second parent is the previous windows tip, and its tree
-# is master's (like `-s ours`). Everything since the latest marker is the
-# current patch stack (`git log <marker>..windows`). Between syncs, old patches
-# are amended with `git commit --fixup=<sha>` or `--fixup=reword:<sha>`; the
-# rebase squashes those in and drops patches that end up empty.
+# parent is the release, its second parent is the previous windows tip, and its
+# tree is the release's (like `-s ours`). Everything since the latest marker is
+# the current patch stack (`git log <marker>..windows`). Between syncs, old
+# patches are amended with `git commit --fixup=<sha>` or `--fixup=reword:<sha>`;
+# the rebase squashes those in and drops patches that end up empty.
 #
-# -Fetch fast-forwards master to upstream/master first; without it the current
-# master is used. If the rebase stops on a conflict, resolve it, run
-# `git rebase --continue`, then run this script again with -Finish. It never
-# pushes; it prints the push command once the result checks out.
+# -Onto defaults to the newest vX.Y.Z tag. -Fetch fetches upstream and
+# fast-forwards master to upstream/master first. If the rebase stops on a
+# conflict, resolve it, run `git rebase --continue`, then run this script again
+# with -Finish. It never pushes; it prints the push command once the result
+# checks out.
 
 [CmdletBinding(DefaultParameterSetName = 'Sync')]
 param(
     [Parameter(ParameterSetName = 'Sync')]
     [switch]$Fetch,
+    [Parameter(ParameterSetName = 'Sync')]
+    [string]$Onto,
     [Parameter(ParameterSetName = 'Finish')]
     [switch]$Finish
 )
@@ -108,7 +111,7 @@ if (-not $Finish) {
 
     if ($Fetch) {
         Write-Host 'Fetching upstream and origin' -ForegroundColor Cyan
-        Invoke-Git fetch upstream
+        Invoke-Git fetch --tags upstream
         Invoke-Git fetch origin
         if (-not (Test-Git merge-base --is-ancestor master upstream/master)) {
             throw 'master has diverged from upstream/master; it must only mirror upstream.'
@@ -116,12 +119,19 @@ if (-not $Finish) {
         Invoke-Git update-ref refs/heads/master upstream/master
     }
 
+    if (-not $Onto) {
+        $Onto = Invoke-Git tag --list 'v*' --sort=-v:refname |
+            Where-Object { $_ -match '^v\d+\.\d+\.\d+$' } |
+            Select-Object -First 1
+        if (-not $Onto) { throw 'No vX.Y.Z tag found; fetch upstream or pass -Onto.' }
+    }
+
     if (-not (Test-Git merge-base --is-ancestor "origin/$branch" $branch)) {
         throw "$branch does not contain origin/$branch; pull it before syncing."
     }
 
     $oldTip = Invoke-Git rev-parse $branch
-    $master = Invoke-Git rev-parse master
+    $target = Invoke-Git rev-parse --verify "$Onto^{commit}"
 
     # The previous sync's marker on the first-parent history, or the fork
     # point before the first sync.
@@ -129,7 +139,7 @@ if (-not $Finish) {
         Where-Object { $_.Substring(41).StartsWith($markerPrefix) } |
         Select-Object -First 1
     if ($base) { $base = $base.Substring(0, 40) }
-    else { $base = Invoke-Git merge-base $branch master }
+    else { $base = Invoke-Git merge-base $branch $target }
 
     $tag = "backup/$branch-$(Get-Date -Format 'yyyy-MM-dd')"
     for ($i = 2; (Test-Git rev-parse -q --verify "refs/tags/$tag") -and
@@ -139,13 +149,12 @@ if (-not $Finish) {
     Invoke-Git tag -f $tag $oldTip | Out-Null
     Write-Host "Tagged the current tip as $tag" -ForegroundColor Cyan
 
-    $short = Invoke-Git rev-parse --short $master
-    $marker = Invoke-Git commit-tree "$master^{tree}" -p $master -p $oldTip -m "$markerPrefix $short"
+    $marker = Invoke-Git commit-tree "$target^{tree}" -p $target -p $oldTip -m "$markerPrefix $Onto"
 
     @{ oldTip = $oldTip; base = $base; marker = $marker; fetched = [bool]$Fetch } | ConvertTo-Json |
         Set-Content -LiteralPath $stateFile
 
-    Write-Host "Rebasing $branch onto $short" -ForegroundColor Cyan
+    Write-Host "Rebasing $branch onto $Onto" -ForegroundColor Cyan
     $env:GIT_SEQUENCE_EDITOR = ':'
     try {
         $previous = $ErrorActionPreference

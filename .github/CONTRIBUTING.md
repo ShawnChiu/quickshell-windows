@@ -69,8 +69,8 @@ contributions are accepted too. Whatever tools you used:
 Open pull requests against `windows`. `master` mirrors upstream and never takes changes.
 
 `windows` only moves forward, so a fork of it can follow it with a normal pull or merge. When
-upstream is synced, the Windows commits are replayed onto the new upstream, and merged pull
-requests may be squashed or reworded on the way.
+upstream makes a release, the Windows commits are replayed onto it, and merged pull requests may
+be squashed or reworded on the way.
 
 Commit messages follow [Conventional Commits](https://www.conventionalcommits.org), for example
 `fix(windows): keep window masks from clipping what windows draw`. Keep the subject short, and

@@ -2,8 +2,9 @@
 
 An **unofficial** port of [Quickshell](https://quickshell.outfoxxed.me) to Windows 11.
 
-This is a downstream fork that tracks upstream and keeps the Windows support as a small set of
-commits on the `windows` branch. `master` mirrors upstream.
+This is a downstream fork that keeps the Windows support as a small set of commits on the
+`windows` branch, on top of the latest upstream release. `master` mirrors upstream. Releases of
+this fork are tagged `vX.Y.Z-win.N`, for upstream `vX.Y.Z`.
 
 The branch is never force pushed, so `git pull` keeps a clone up to date. Each upstream sync
 starts with a `chore: start merging-rebase onto upstream ...` merge commit, and the commits after
