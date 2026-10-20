@@ -3,6 +3,7 @@ description = "Windows-specific Quickshell types"
 headers = [
 	"idle.hpp",
 	"hwnd.hpp",
+	"monitor.hpp",
 	"blur_behind.hpp",
 	"wallpaper_blur.hpp",
 	"power.hpp",
@@ -52,7 +53,8 @@ Windows' own blur.
 ## Window managers
 
 Tiling window managers such as komorebi report windows by handle (HWND). @@Hwnd takes those
-handles as numbers to activate or close a window, or find its process.
+handles as numbers to activate or close a window, or find its process. They name displays by
+device name (`\\.\DISPLAY1`), which @@Monitor.deviceName() gives for a screen.
 
 Windows only lets a process bring a window to the foreground if it received the last input
 event, so @@Hwnd.activate() and @@MediaSession.activate() work from a click handler and may

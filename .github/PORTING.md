@@ -81,6 +81,7 @@ Types without platform-specific code are not listed.
 | `IdleInhibitor` | Works | Keeps the display on and the system awake while `enabled`. |
 | `IdleMonitor` | Works | `isIdle` after `timeout` seconds without keyboard or mouse input. |
 | `Hwnd` | Works | `activate`, `close` and `processId` for a window by handle, as komorebi reports them. |
+| `Monitor` | Works | `deviceName` of a screen, as window managers report them. Tested with a single monitor only. |
 | `BlurBehind` | Works | Stays blurred while the window is unfocused. With `xray` it shows the blurred wallpaper. |
 | `WallpaperBlur` | Works | Parameters of the xray wallpaper blur, niri's `blur` section. |
 | `PowerManager` | Works | Tested on a desktop only (no battery). |

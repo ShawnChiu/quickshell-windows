@@ -2,6 +2,7 @@ qt_add_library(quickshell-windows STATIC
 	panel_window.cpp
 	idle.cpp
 	hwnd.cpp
+	monitor.cpp
 	blur_behind.cpp
 	backdrop.cpp
 	wallpaper_blur.cpp
