@@ -33,7 +33,7 @@ Types without platform-specific code are not listed.
 | `Process` | Works | `running = false` terminates the process, as `signal()` does: console programs never see the polite close Qt sends. A running process is also ended when quickshell exits or crashes; what it starts is not. |
 | `IpcHandler` | Works | Over named pipes. |
 | `Socket`, `SocketServer` | Works | Over named pipes. A `path` without `\\.\pipe\` is taken as a pipe name. |
-| `FileView` | Untested | |
+| `FileView` | Works | |
 
 ## Command line
 
