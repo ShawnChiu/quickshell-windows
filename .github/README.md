@@ -3,7 +3,13 @@
 An **unofficial** port of [Quickshell](https://quickshell.outfoxxed.me) to Windows 11.
 
 This is a downstream fork that tracks upstream and keeps the Windows support as a small set of
-commits on the `windows` branch, rebased onto each upstream update. `master` mirrors upstream.
+commits on the `windows` branch. `master` mirrors upstream.
+
+Upstream syncs use a merging rebase, as Git for Windows does: the patches are rebased onto the
+new `master` on top of a merge commit (`chore: start merging-rebase onto upstream ...`) whose
+second parent is the previous `windows` tip. History only moves forward, so `git pull` updates
+a clone. To see the current patches, run `git log <latest marker>..windows`, where
+`git log --first-parent --merges -1 windows` finds the latest marker.
 
 - Upstream: https://git.outfoxxed.me/quickshell/quickshell
   (mirror: https://github.com/quickshell-mirror/quickshell)
