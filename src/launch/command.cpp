@@ -47,8 +47,7 @@ QList<QString> configBaseDirs() {
 	    qEnvironmentVariable("XDG_CONFIG_DIRS").split(QDir::listSeparator(), Qt::SkipEmptyParts);
 
 #ifdef Q_OS_WIN
-	// chezmoi and most cross-platform tools (komorebi, yasb) use ~/.config on windows,
-	// so search it before the native %APPDATA% location.
+	// most cross-platform tools use ~/.config on windows, so search it before %APPDATA%.
 	auto home = QDir(QStandardPaths::writableLocation(QStandardPaths::HomeLocation));
 	auto appData = QDir::fromNativeSeparators(qEnvironmentVariable("APPDATA"));
 	if (!appData.isEmpty()) configDirs.prepend(appData);
