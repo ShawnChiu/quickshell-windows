@@ -21,7 +21,8 @@ Types without platform-specific code are not listed.
 | `PanelWindow` | Works | Placed and reserves space through the Win32 AppBar API, as the taskbar does. Reloading briefly removes and re-adds the reserved space. See [known limitations](#known-limitations) for programs running as administrator. |
 | `PanelWindow.focusable` | Works | Becoming focusable while shown takes the foreground, as `Exclusive` keyboard focus does on Wayland, and hands it back to the previous window when it stops. |
 | `QsWindow.mask` | Works | Only limits input, as on Wayland: what the window draws outside it still shows, and clicks there reach whatever is below. |
-| `FloatingWindow`, `PopupWindow` | Untested | |
+| `FloatingWindow` | Works | Minimizing keeps `visible` true, and setting `visible` does not restore a minimized window. Set `minimized = false` to bring it back. |
+| `PopupWindow` | Works | |
 | `DesktopEntries` | Works | Lists the Start menu's All apps (the shell's Apps folder): programs, Store apps, File Explorer, Settings and URL shortcuts such as Steam's games, one per name. Names are in the display language; a shortcut's file name, when it differs, is a keyword. `execute()` runs the app through Explorer. `startupClass` is the target's file name without `.exe`, so `heuristicLookup` matches window managers' app ids. Rescanned when the Start menu's folders change, not when a Store app is installed. |
 | Multiple monitors, mixed DPI | Untested | |
 
