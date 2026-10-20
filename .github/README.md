@@ -15,6 +15,7 @@ the latest one are the current patches.
 
 > [!IMPORTANT]
 > Please report Windows-specific problems here, not upstream. Upstream does not support Windows.
+> See [CONTRIBUTING.md](CONTRIBUTING.md) for what to include and how to contribute.
 
 ## Status
 

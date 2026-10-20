@@ -1,31 +1,32 @@
 <!--
-Read https://github.com/quickshell-mirror/quickshell/blob/master/CONTRIBUTING.md before opening a PR.
+This is the Windows fork. Read .github/CONTRIBUTING.md before opening a PR, and open it
+against the `windows` branch.
 
-Failing to do so may result in a ban from opening PRs.
+Changes that are not Windows specific belong upstream, under upstream's rules.
 -->
 
 ### Describe your changes
-<!-- High level overview of what you are changing and why. AI may not be used to write this. -->
-
-### Details and descisions
 <!--
-Put details of why you took a given approach to problems here if its not obvious.
-Reviewing PRs is easier if we don't have to reverse engineer your reasoning.
+What you are changing and why. AI may help write this, but you must have checked that it is
+accurate.
+-->
 
-Consider if things you put here should be code comments instead.
+### Testing
+<!--
+What you tested on: Windows version, single or multiple monitors, DPI scaling, and the window
+manager or bar tools running alongside if relevant. Say so if the change is untested.
+-->
 
-If an AI was heavily used to make the change and its context might be useful,
-put it in a spoiler under your own reasoning.
+### Details and decisions
+<!--
+Why you took this approach, if it is not obvious. Note any edits to upstream files and why they
+could not live under src/windows/.
 -->
 
 ### Open concerns
-<!-- Anything you're not sure of or want help with? -->
+<!-- Anything you are not sure of or want help with? -->
 
-### Participation
-<!--
-With the advent of AI, we get a lot more drive-bys that don't care about participating
-in a traditional review process, and just want to get a change in.
-
-If you care about your code or learning how the project works to contribute in the future,
-please say so. If not, we'll assume you don't particularly care.
--->
+### Checklist
+- [ ] Tested on Windows, or marked Untested in `.github/PORTING.md`
+- [ ] `.github/PORTING.md` updated if a type's status changed
+- [ ] New `Quickshell.Windows` types documented in their header and in `src/windows/module.md`
