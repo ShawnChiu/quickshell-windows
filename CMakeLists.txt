@@ -97,8 +97,15 @@ boption(WINDOWS_SHELL "Windows Shell Integration" ${QS_WINDOWS_DEFAULT})
 include(cmake/install-qml-module.cmake)
 include(cmake/util.cmake)
 
+if (WIN32 AND NOT (CMAKE_CXX_COMPILER_ID STREQUAL "Clang"
+	AND CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC"))
+	message(FATAL_ERROR "Windows builds need clang-cl, configure with `cmake --preset windows`")
+endif()
+
 if (MSVC)
-	add_compile_options(/W3 /utf-8 /permissive- /Zc:__cplusplus /Zc:preprocessor /bigobj)
+	# clang-cl, so upstream's gnu extensions keep compiling
+	add_compile_options(/W4 /utf-8 /permissive- /Zc:__cplusplus /bigobj)
+	add_compile_options(/clang:-fgnu-keywords -Wno-vla-cxx-extension -Wno-clang-cl-pch)
 	add_compile_definitions(NOMINMAX WIN32_LEAN_AND_MEAN UNICODE _UNICODE)
 else()
 	add_compile_options(-Wall -Wextra -Wno-vla-cxx-extension)

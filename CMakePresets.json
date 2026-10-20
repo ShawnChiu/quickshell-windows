@@ -1,0 +1,19 @@
+{
+	"version": 2,
+	"configurePresets": [
+		{
+			"name": "windows",
+			"displayName": "Windows (clang-cl)",
+			"description": "Run from a vcvars64 environment with LLVM on PATH, pass Qt with CMAKE_PREFIX_PATH",
+			"generator": "Ninja",
+			"binaryDir": "${sourceDir}/build",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "RelWithDebInfo",
+				"CMAKE_C_COMPILER": "clang-cl",
+				"CMAKE_CXX_COMPILER": "clang-cl",
+				"CMAKE_LINKER": "lld-link",
+				"CMAKE_POLICY_VERSION_MINIMUM": "3.5"
+			}
+		}
+	]
+}
