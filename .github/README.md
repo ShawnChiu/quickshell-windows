@@ -5,11 +5,9 @@ An **unofficial** port of [Quickshell](https://quickshell.outfoxxed.me) to Windo
 This is a downstream fork that tracks upstream and keeps the Windows support as a small set of
 commits on the `windows` branch. `master` mirrors upstream.
 
-Upstream syncs use a merging rebase, as Git for Windows does: the patches are rebased onto the
-new `master` on top of a merge commit (`chore: start merging-rebase onto upstream ...`) whose
-second parent is the previous `windows` tip. History only moves forward, so `git pull` updates
-a clone. To see the current patches, run `git log <latest marker>..windows`, where
-`git log --first-parent --merges -1 windows` finds the latest marker.
+The branch is never force pushed, so `git pull` keeps a clone up to date. Each upstream sync
+starts with a `chore: start merging-rebase onto upstream ...` merge commit, and the commits after
+the latest one are the current patches.
 
 - Upstream: https://git.outfoxxed.me/quickshell/quickshell
   (mirror: https://github.com/quickshell-mirror/quickshell)
