@@ -271,8 +271,6 @@ private slots:
 
 class ProxiedWindow: public QsQuickWindowBase {
 	Q_OBJECT;
-	// Read through `Window.window` in QML. Qt 6.10's QWindow has no such property.
-	Q_PROPERTY(qreal devicePixelRatio READ devicePixelRatio NOTIFY devicePixelRatioChanged);
 
 public:
 	explicit ProxiedWindow(ProxyWindowBase* proxy, QWindow* parent = nullptr)
