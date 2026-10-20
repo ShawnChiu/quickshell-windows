@@ -1,5 +1,5 @@
 name = "Quickshell.Windows"
-description = "Windows specific Quickshell types"
+description = "Windows-specific Quickshell types"
 headers = [
 	"idle.hpp",
 	"hwnd.hpp",

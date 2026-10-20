@@ -1,7 +1,7 @@
 # Porting status
 
 What of upstream Quickshell works on Windows, and how it differs from Linux. Usage of the
-Windows only types is documented in their headers and in
+Windows-only types is documented in their headers and in
 [src/windows/module.md](../src/windows/module.md).
 
 Status:
@@ -12,7 +12,7 @@ Status:
 - **Inert**: can be imported and used, but never reports anything.
 - **Unavailable**: not built on Windows. Importing it fails.
 
-Types without platform specific code are not listed.
+Types without platform-specific code are not listed.
 
 ## Quickshell
 
@@ -38,7 +38,7 @@ Types without platform specific code are not listed.
 
 | Command | Status | Notes |
 |---|---|---|
-| `qs ipc`, `qs list`, `qs kill` | Works | |
+| `qs ipc`, `qs list`, `qs kill`, `qs log` | Works | |
 | `qs -d` | Works | Runs in the background. `quickshell.exe` is a console program, so starting it otherwise opens a console window. |
 | Config lookup | Works | `$XDG_CONFIG_HOME\quickshell` (if set), then `%USERPROFILE%\.config\quickshell`, then `%APPDATA%\quickshell`. |
 

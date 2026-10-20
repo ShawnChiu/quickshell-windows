@@ -23,7 +23,7 @@ a clone. To see the current patches, run `git log <latest marker>..windows`, whe
 Work in progress, used daily as a bar on Windows 11. Configs written for Linux load: panels
 reserve screen space like the taskbar, `Process`, IPC and `DesktopEntries` work, UPower and
 Mpris are backed by Windows, and the Wayland and DBus modules can be imported but do nothing.
-`import Quickshell.Windows` adds Windows only types for idle, window handles, blur, power, audio
+`import Quickshell.Windows` adds Windows-only types for idle, window handles, blur, power, audio
 and media.
 
 - [PORTING.md](PORTING.md): what works, what differs from Linux, and what is not available.
@@ -32,25 +32,32 @@ and media.
 
 ## Building
 
-Requirements: Visual Studio 2022 Build Tools (Desktop C++ workload), LLVM 19+ for `clang-cl`,
-CMake, Ninja, and Qt 6.8+ for `msvc2022_64` with the Qt Shader Tools module. Only `clang-cl` is
-supported, `cl` is rejected at configure time. LLVM comes from `winget install LLVM.LLVM` or the
-"C++ Clang tools for Windows" component in the Visual Studio Installer. Qt can be installed with
-[aqtinstall](https://github.com/miurahr/aqtinstall):
+Install the tools below, and Qt 6.8 or newer for MSVC 2022 64-bit with Qt Shader Tools from the
+[Qt Online Installer](https://www.qt.io/download-qt-installer-oss). LLVM must be 19 or newer.
 
 ```powershell
-winget install miurahr.aqtinstall
-aqt install-qt windows desktop 6.10.3 win64_msvc2022_64 -m qtshadertools -O C:\Qt
+winget install Kitware.CMake Ninja-build.Ninja LLVM.LLVM
+winget install Microsoft.VisualStudio.2022.BuildTools --override "--wait --passive --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"
 ```
 
-From an "x64 Native Tools" prompt with LLVM's `bin` on `PATH`:
+Clone to a short path such as `C:\src\quickshell`, because some build paths get close to the
+260-character path limit. Every new terminal needs the 64-bit MSVC environment with LLVM first
+on `PATH` before building:
 
 ```powershell
-cmake --preset windows -DCMAKE_PREFIX_PATH=C:/Qt/6.10.3/msvc2022_64
+$vs = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+& "$vs\Common7\Tools\Launch-VsDevShell.ps1" -Arch amd64 -HostArch amd64 -SkipAutomaticLocation
+$env:PATH = "$env:ProgramFiles\LLVM\bin;$env:PATH"
+```
+
+Then configure once and build:
+
+```powershell
+cmake --preset windows -DCMAKE_PREFIX_PATH=C:/Qt/<version>/msvc2022_64
 cmake --build build
 ```
 
-Qt's `bin` directory has to be on `PATH` to run the result from the build directory.
+To run `build\qs.exe` in place, put Qt's `bin` on `PATH`, or use the install script below.
 
 ## Installing
 
