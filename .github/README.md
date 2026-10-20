@@ -17,6 +17,7 @@ a clone. To see the current patches, run `git log <latest marker>..windows`, whe
 
 > [!IMPORTANT]
 > Please report Windows-specific problems here, not upstream. Upstream does not support Windows.
+> See [CONTRIBUTING.md](CONTRIBUTING.md) for what to include and how to contribute.
 
 ## Status
 
