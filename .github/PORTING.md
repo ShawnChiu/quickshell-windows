@@ -88,6 +88,7 @@ Types without platform-specific code are not listed.
 | `Audio` | Works | Hot plugging (such as Bluetooth headphones) and renaming endpoints are untested. |
 | `MediaSessions` | Works | Tested with a test session, not yet with real players. |
 | `NotifyIcons` | Works | The system tray, beside Explorer's. Menus are each program's own, opened by `contextMenu()`. Cannot run alongside other programs that show the tray, such as yasb's tray widget. Tested with a single monitor only. |
+| `Toasts` | Works | The notifications in the Windows notification center, which still shows its own banners. Needs "Let desktop apps access your notifications" in Settings. Buttons come from an undocumented database and reach Win32 apps that register for them, such as Firefox; Store apps can only be opened. |
 
 ## Planned
 

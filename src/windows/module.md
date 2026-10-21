@@ -10,6 +10,7 @@ headers = [
 	"audio.hpp",
 	"media.hpp",
 	"notify_icons.hpp",
+	"toasts.hpp",
 ]
 -----
 Types that give Windows semantics to what the Linux modules do through Wayland, DBus or
@@ -75,6 +76,31 @@ MouseArea {
 
 With @@Quickshell.Services.SystemTray, `hasMenu` is false, and a right click calls
 `display()` instead, which opens the program's menu the same way.
+
+## Notifications
+
+@@Toasts lists the notifications in the Windows notification center. Windows still shows its
+own banners, so turn off "Show notification banners" for each app in Settings, System,
+Notifications to only see a config's popups. Reading them needs "Let desktop apps access your
+notifications" in Settings, Privacy & security, Notifications.
+
+```qml
+Repeater {
+  model: Toasts.toasts
+
+  MouseArea {
+    required property Toast modelData
+    acceptedButtons: Qt.LeftButton | Qt.RightButton
+    onClicked: mouse => {
+      if (mouse.button === Qt.RightButton) modelData.remove();
+      else modelData.activate();
+    }
+  }
+}
+```
+
+Call @@Toast.activate() and @@ToastAction.invoke() from a click handler, so the app can take
+the foreground.
 
 ## Window managers
 

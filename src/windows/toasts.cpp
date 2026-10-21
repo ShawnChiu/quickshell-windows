@@ -1,12 +1,15 @@
 #include <algorithm>
 #include <chrono>
+#include <string>
 #include <utility>
+#include <vector>
 
 // The other Windows headers need it first.
 // clang-format off
 #include <windows.h>
 // clang-format on
 
+#include <NotificationActivationCallback.h>
 #include <qbytearray.h>
 #include <qcoreapplication.h>
 #include <qdatetime.h>
@@ -20,12 +23,17 @@
 #include <qloggingcategory.h>
 #include <qnamespace.h>
 #include <qobject.h>
+#include <qprocess.h>
 #include <qset.h>
 #include <qstring.h>
+#include <qthreadpool.h>
 #include <qtimezone.h>
 #include <qtypes.h>
 #include <qurl.h>
+#include <quuid.h>
+#include <qvariant.h>
 #include <qxmlstream.h>
+#include <shobjidl_core.h>
 #include <winrt/Windows.ApplicationModel.h>
 #include <winrt/Windows.Foundation.Collections.h>
 #include <winrt/Windows.Foundation.h>
@@ -35,6 +43,7 @@
 #include <winsqlite/winsqlite3.h>
 
 #include "../core/logcat.hpp"
+#include "../core/model.hpp"
 #include "toasts.hpp"
 
 namespace wam = winrt::Windows::ApplicationModel;
@@ -193,8 +202,64 @@ struct AppData {
 	QImage logo;
 };
 
+// Unpackaged apps register their toasts' name, icon and COM activator here.
+QString registeredValue(const QString& aumid, const wchar_t* name) {
+	auto key = L"Software\\Classes\\AppUserModelId\\" + aumid.toStdWString();
+	auto size = DWORD();
+
+	auto result =
+	    RegGetValueW(HKEY_CURRENT_USER, key.c_str(), name, RRF_RT_REG_SZ, nullptr, nullptr, &size);
+	if (result != ERROR_SUCCESS) return QString();
+
+	auto value = std::wstring(size / sizeof(wchar_t), L'\0');
+	result = RegGetValueW(
+	    HKEY_CURRENT_USER,
+	    key.c_str(),
+	    name,
+	    RRF_RT_REG_SZ,
+	    nullptr,
+	    value.data(),
+	    &size
+	);
+
+	return result == ERROR_SUCCESS ? QString::fromWCharArray(value.c_str()) : QString();
+}
+
+QString appsFolderPath(const QString& aumid) {
+	return QStringLiteral("shell:AppsFolder\\") + QString(aumid).replace('/', '\\');
+}
+
+// AppInfo has no logo for unpackaged apps. Explorer shows their registered icon, or else the
+// Start menu's.
+QImage fallbackLogo(const QString& aumid) {
+	auto path = localPath(registeredValue(aumid, L"IconUri"));
+	auto logo = path.isEmpty() ? QImage() : QImage(path);
+	if (!logo.isNull()) return logo;
+
+	auto com = SUCCEEDED(CoInitializeEx(nullptr, COINIT_MULTITHREADED));
+	IShellItemImageFactory* factory = nullptr;
+	auto parsingName = appsFolderPath(aumid).toStdWString();
+
+	if (SUCCEEDED(SHCreateItemFromParsingName(parsingName.c_str(), nullptr, IID_PPV_ARGS(&factory))))
+	{
+		HBITMAP bitmap = nullptr;
+		auto flags = SIIGBF_ICONONLY | SIIGBF_BIGGERSIZEOK;
+
+		if (SUCCEEDED(factory->GetImage(SIZE {.cx = LOGO_SIZE, .cy = LOGO_SIZE}, flags, &bitmap))) {
+			logo = QImage::fromHBITMAP(bitmap);
+			DeleteObject(bitmap);
+		}
+
+		factory->Release();
+	}
+
+	if (com) CoUninitialize();
+	return logo;
+}
+
 AppData readApp(const wam::AppInfo& info) {
 	auto app = AppData();
+	auto aumid = fromHString(info.AppUserModelId());
 
 	try {
 		if (auto display = info.DisplayInfo()) {
@@ -203,14 +268,236 @@ AppData readApp(const wam::AppInfo& info) {
 			if (logo) app.logo = readImage(logo);
 		}
 	} catch (const winrt::hresult_error& e) {
-		qCDebug(logToasts) << "No app info for" << fromHString(info.AppUserModelId())
-		                   << fromHString(e.message());
+		qCDebug(logToasts) << "No app info for" << aumid << fromHString(e.message());
 	}
 
+	if (app.logo.isNull()) app.logo = fallbackLogo(aumid);
 	return app;
 }
 
+// Explorer starts what it opens unelevated, even when quickshell runs as administrator.
+void openWithExplorer(const QString& target) {
+	auto process = QProcess();
+	process.setProgram(QStringLiteral("explorer.exe"));
+	// Explorer splits unquoted arguments at commas.
+	process.setNativeArguments('"' + QString(target).remove('"') + '"');
+
+	if (!process.startDetached()) qCWarning(logToasts) << "Could not open" << target;
+}
+
+// Explorer opens Documents for an AUMID the Apps folder doesn't have. Some apps use their exe's
+// path as the AUMID.
+void openApp(const QString& aumid) {
+	auto com = SUCCEEDED(CoInitializeEx(nullptr, COINIT_MULTITHREADED));
+	IShellItem* item = nullptr;
+	auto parsingName = appsFolderPath(aumid).toStdWString();
+	auto listed =
+	    SUCCEEDED(SHCreateItemFromParsingName(parsingName.c_str(), nullptr, IID_PPV_ARGS(&item)));
+	if (item) item->Release();
+	if (com) CoUninitialize();
+
+	if (listed) {
+		openWithExplorer(appsFolderPath(aumid));
+	} else if (auto exe = QFileInfo(aumid); exe.isAbsolute() && exe.isFile()) {
+		openWithExplorer(QDir::toNativeSeparators(exe.filePath()));
+	} else {
+		qCWarning(logToasts) << "Could not open" << aumid;
+	}
+}
+
+bool isElevated() {
+	HANDLE token = nullptr;
+	if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token)) return false;
+
+	auto elevation = TOKEN_ELEVATION();
+	auto size = DWORD();
+	auto ok = GetTokenInformation(token, TokenElevation, &elevation, sizeof(elevation), &size);
+	CloseHandle(token);
+
+	return ok && elevation.TokenIsElevated;
+}
+
+HANDLE shellToken() {
+	auto pid = DWORD();
+	GetWindowThreadProcessId(GetShellWindow(), &pid);
+	if (pid == 0) return nullptr;
+
+	auto* process = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
+	if (!process) return nullptr;
+
+	HANDLE token = nullptr;
+	HANDLE impersonation = nullptr;
+
+	if (OpenProcessToken(process, TOKEN_DUPLICATE | TOKEN_QUERY, &token)) {
+		DuplicateTokenEx(
+		    token,
+		    TOKEN_IMPERSONATE | TOKEN_QUERY,
+		    nullptr,
+		    SecurityImpersonation,
+		    TokenImpersonation,
+		    &impersonation
+		);
+
+		CloseHandle(token);
+	}
+
+	CloseHandle(process);
+	return impersonation;
+}
+
+HRESULT activate(
+    const QUuid& clsid,
+    const QString& aumid,
+    const QString& arguments,
+    const QList<std::pair<QString, QString>>& inputs
+) {
+	INotificationActivationCallback* callback = nullptr;
+	auto result = CoCreateInstance(
+	    static_cast<GUID>(clsid),
+	    nullptr,
+	    CLSCTX_LOCAL_SERVER | CLSCTX_ENABLE_CLOAKING,
+	    IID_PPV_ARGS(&callback)
+	);
+
+	if (FAILED(result)) return result;
+
+	auto strings = std::vector<std::wstring>();
+	for (const auto& [key, value]: inputs) {
+		strings.push_back(key.toStdWString());
+		strings.push_back(value.toStdWString());
+	}
+
+	auto data = std::vector<NOTIFICATION_USER_INPUT_DATA>();
+	for (size_t i = 0; i < strings.size(); i += 2) {
+		data.push_back({.Key = strings[i].c_str(), .Value = strings[i + 1].c_str()});
+	}
+
+	result = callback->Activate(
+	    aumid.toStdWString().c_str(),
+	    arguments.toStdWString().c_str(),
+	    data.data(),
+	    static_cast<ULONG>(data.size())
+	);
+
+	callback->Release();
+	return result;
+}
+
+void sendActivation(
+    const QString& aumid,
+    const QString& arguments,
+    const QList<std::pair<QString, QString>>& inputs
+) {
+	auto clsid = QUuid::fromString(registeredValue(aumid, L"CustomActivator"));
+	if (clsid.isNull()) {
+		openApp(aumid);
+		return;
+	}
+
+	// Starting the app's COM server may take a while.
+	QThreadPool::globalInstance()->start([clsid, aumid, arguments, inputs]() {
+		static const auto elevated = isElevated();
+
+		// Elevated, COM ignores per user registrations and starts servers elevated, so this
+		// activates as the shell instead.
+		auto* token = elevated ? shellToken() : nullptr;
+		auto result = E_ACCESSDENIED;
+
+		if (!elevated || (token && SetThreadToken(nullptr, token))) {
+			auto com = SUCCEEDED(CoInitializeEx(nullptr, COINIT_MULTITHREADED));
+			result = activate(clsid, aumid, arguments, inputs);
+			if (com) CoUninitialize();
+		}
+
+		if (token) {
+			SetThreadToken(nullptr, nullptr);
+			CloseHandle(token);
+		}
+
+		if (FAILED(result)) {
+			qCWarning(logToasts) << "Could not activate" << aumid << "opening it instead:" << Qt::hex
+			                     << static_cast<ULONG>(result);
+			openApp(aumid);
+		} else {
+			qCDebug(logToasts) << "Activated" << aumid << arguments << inputs << "elevated" << elevated;
+		}
+	});
+}
+
 } // namespace
+
+QImage ToastLogo::requestImage(const QString& /*unused*/, QSize* size, const QSize& /*unused*/) {
+	if (size != nullptr) *size = this->image.size();
+	return this->image;
+}
+
+ToastAction::ToastAction(ToastActionData data, Toast* toast)
+    : QObject(toast)
+    , data(std::move(data))
+    , toast(toast) {}
+
+void ToastAction::invoke(const QVariantMap& inputs) {
+	this->toast->invoke(this->data.activationType, this->data.arguments, inputs);
+}
+
+Toast::Toast(ToastData data, QObject* parent)
+    : QObject(parent)
+    , mData(std::move(data))
+    , logo(this->mData.logo) {
+	for (const auto& action: this->mData.actions) {
+		if (action.activationType == u"system") continue;
+		this->mActions.append(new ToastAction(action, this));
+	}
+
+	for (const auto& input: this->mData.inputs) {
+		this->mInputs.append(new ToastInput(input, this));
+	}
+}
+
+QString Toast::appIcon() const { return this->mData.logo.isNull() ? QString() : this->logo.url(); }
+
+QString Toast::image() const {
+	auto path = localPath(this->mData.image);
+	return path.isEmpty() ? QString() : QUrl::fromLocalFile(path).toString();
+}
+
+void Toast::activate() { this->invoke(this->mData.launchType, this->mData.launch, {}); }
+
+void Toast::remove() { ToastService::instance()->remove(this->mData.id); }
+
+void Toast::invoke(
+    const QString& activationType,
+    const QString& arguments,
+    const QVariantMap& inputs
+) {
+	qCDebug(logToasts) << "Invoking" << this->mData.id << activationType << arguments;
+	AllowSetForegroundWindow(ASFW_ANY);
+
+	if (activationType != u"protocol") {
+		auto values = QList<std::pair<QString, QString>>();
+		for (const auto& input: this->mData.inputs) {
+			auto value = inputs.value(input.id);
+			values.append({input.id, value.isValid() ? value.toString() : input.defaultInput});
+		}
+
+		sendActivation(this->mData.aumid, arguments, values);
+	} else if (!arguments.isEmpty()) {
+		openWithExplorer(arguments);
+	} else {
+		openApp(this->mData.aumid);
+	}
+
+	this->remove();
+}
+
+ToastsQml::ToastsQml(QObject* parent): QObject(parent) {
+	QObject::connect(
+	    ToastService::instance(),
+	    &ToastService::accessStatusChanged,
+	    this,
+	    &ToastsQml::allowedChanged
+	);
+}
 
 class ToastServicePrivate {
 public:
@@ -570,6 +857,7 @@ void ToastService::applySnapshot(
 
 	this->mToasts.append(added);
 	std::ranges::stable_sort(this->mToasts, byArrival);
+	this->updateModel(removed, added);
 
 	qCDebug(logToasts) << "Snapshot of" << ids.length() << "toasts took" << elapsed << "ms";
 
@@ -629,6 +917,26 @@ void ToastService::applySnapshot(
 
 		if (old == replaced.end()) emit this->toastAdded(toast);
 		else emit this->toastReplaced(old->first, toast);
+	}
+}
+
+void ToastService::updateModel(const QList<ToastData>& removed, const QList<ToastData>& added) {
+	for (const auto& toast: removed) {
+		const auto& list = this->mModel.valueList();
+		auto existing = std::ranges::find(list, toast.id, &Toast::id);
+		if (existing == list.end()) continue;
+
+		auto* object = *existing;
+		this->mModel.removeObject(object);
+		object->deleteLater();
+	}
+
+	for (const auto& toast: added) {
+		this->mModel.insertObjectSorted(new Toast(toast, this), [](Toast* toast, Toast* other) {
+			return toast->arrivalTime() != other->arrivalTime()
+			         ? toast->arrivalTime() > other->arrivalTime()
+			         : toast->id() > other->id();
+		});
 	}
 }
 
