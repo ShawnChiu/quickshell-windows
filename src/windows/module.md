@@ -21,9 +21,9 @@ PipeWire. Only available in Windows builds of this fork.
 Most of a config written for Linux loads unchanged:
 - @@Quickshell.PanelWindow reserves screen space through the Win32 AppBar API, the way the
   taskbar does.
-- @@Quickshell.Services.UPower, @@Quickshell.Services.Mpris and
-  @@Quickshell.Services.SystemTray are backed by @@PowerManager, @@MediaSessions and
-  @@NotifyIcons.
+- @@Quickshell.Services.UPower, @@Quickshell.Services.Mpris,
+  @@Quickshell.Services.SystemTray and @@Quickshell.Services.Notifications are backed by
+  @@PowerManager, @@MediaSessions, @@NotifyIcons and @@Toasts.
 - @@Quickshell.Wayland can be imported, but only `BackgroundEffect.blurRegion` does anything:
   it sets @@BlurBehind.region with @@BlurBehind.xray.
 
@@ -101,6 +101,9 @@ Repeater {
 
 Call @@Toast.activate() and @@ToastAction.invoke() from a click handler, so the app can take
 the foreground.
+
+With @@Quickshell.Services.Notifications, the `default` action does what @@Toast.activate()
+does, and `dismiss()` removes the toast from the notification center.
 
 ## Window managers
 

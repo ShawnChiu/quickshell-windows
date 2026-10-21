@@ -50,7 +50,7 @@ boption(FRAME_POINTERS "Keep Frame Pointers (dev)" ${ASAN})
 
 # Linux desktop integrations which have no windows implementation.
 # DBus services build on windows too: with no session bus they stay empty.
-# UPower, Mpris and SystemTray are off since src/windows provides them.
+# UPower, Mpris, SystemTray and Notifications are off since src/windows provides them.
 if (WIN32)
 	set(QS_UNIX_DEFAULT OFF)
 	set(QS_WINDOWS_DEFAULT ON)
@@ -89,7 +89,7 @@ boption(SERVICE_PAM "Pam" ${QS_UNIX_DEFAULT})
 boption(SERVICE_POLKIT "Polkit" ${QS_UNIX_DEFAULT})
 boption(SERVICE_GREETD "Greetd" ${QS_UNIX_DEFAULT})
 boption(SERVICE_UPOWER "UPower" ${QS_UNIX_DEFAULT})
-boption(SERVICE_NOTIFICATIONS "Notifications" ON)
+boption(SERVICE_NOTIFICATIONS "Notifications" ${QS_UNIX_DEFAULT})
 boption(BLUETOOTH "Bluetooth" ON)
 boption(NETWORK "Network" ${QS_UNIX_DEFAULT})
 boption(WINDOWS_SHELL "Windows Shell Integration" ${QS_WINDOWS_DEFAULT})

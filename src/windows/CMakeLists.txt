@@ -50,3 +50,7 @@ endif()
 if (NOT SERVICE_STATUS_NOTIFIER)
 	add_subdirectory(systray)
 endif()
+
+if (NOT SERVICE_NOTIFICATIONS)
+	add_subdirectory(notifications)
+endif()

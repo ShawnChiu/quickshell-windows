@@ -51,8 +51,8 @@ Types without platform-specific code are not listed.
 | `Quickshell.Services.Mpris` | Windows backed | By `MediaSessions`. Track info, art (as an image url), position, length, playback state, loop, shuffle and rate; `raise` activates the app's window. Players cannot quit, go fullscreen, open uris or report their volume. Tested with a test session, not yet with real players. |
 | `Quickshell.Services.Pipewire` | Unavailable | Use `Quickshell.Windows.Audio` from a file loaded only on Windows. |
 | `Quickshell.Services.SystemTray` | Windows backed | By `NotifyIcons`. Menus are each program's own: `hasMenu` is false and `menu` is null, but `display()` opens the program's menu, so call it on right click. `id` is the icon's GUID, or the program's file name without `.exe` and the icon's number, such as `Everything_0`. Hidden icons are `Passive`, every item is `ApplicationStatus`, and `scroll()` does nothing. Tested with a single monitor only. |
-| `Quickshell.Services.Notifications` | Inert | Talks to DBus, which Windows does not have. Logs one "Could not connect to DBus" warning when first used. |
-| `Quickshell.Bluetooth` | Inert | As above. |
+| `Quickshell.Services.Notifications` | Windows backed | By `Toasts`. Windows still shows its own banners, so turn them off to only see a config's popups. `notification` is only sent for toasts that arrive after the server starts. `expire()` leaves the toast in the Windows notification center; `dismiss()` and invoking an action remove it. `summary` is the toast's first line and `body` the rest, as plain text, escaped while `bodyMarkupSupported` is true. Actions are `default` and the toast's buttons, which may be missing; Store apps can only be opened. `hasInlineReply` is true for toasts with one text box and a button that sends it. `resident`, `transient` and `hasActionIcons` are false, and `hints` is empty. |
+| `Quickshell.Bluetooth` | Inert | Talks to DBus, which Windows does not have. Logs one "Could not connect to DBus" warning when first used. |
 | `Quickshell.Services.Pam`, `Polkit`, `Greetd` | Unavailable | |
 | `Quickshell.Networking` | Unavailable | |
 
@@ -93,8 +93,6 @@ Types without platform-specific code are not listed.
 ## Planned
 
 - Display brightness through WMI, for built-in laptop displays only.
-- Notifications, read from the Windows notification center. Windows still shows its own
-  banners.
 
 ## Not planned
 
