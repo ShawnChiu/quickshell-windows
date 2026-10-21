@@ -9,6 +9,7 @@ headers = [
 	"power.hpp",
 	"audio.hpp",
 	"media.hpp",
+	"notify_icons.hpp",
 ]
 -----
 Types that give Windows semantics to what the Linux modules do through Wayland, DBus or
@@ -49,6 +50,27 @@ PanelWindow {
 
 Both turn solid while Transparency effects is off or battery or energy saver is on, like
 Windows' own blur.
+
+## System tray
+
+@@NotifyIcons lists the icons programs show in the notification area, while Explorer's tray
+keeps working. Programs draw their own menus, so a right click calls
+@@NotifyIcon.contextMenu() for the program to open its menu. Call it from a click handler, or
+the menu may open behind other windows.
+
+```qml
+MouseArea {
+  acceptedButtons: Qt.LeftButton | Qt.RightButton
+  onClicked: mouse => {
+    if (mouse.button === Qt.RightButton) {
+      const pos = mapToGlobal(mouse.x, mouse.y);
+      modelData.contextMenu(pos.x, pos.y);
+    } else {
+      modelData.click();
+    }
+  }
+}
+```
 
 ## Window managers
 

@@ -87,6 +87,7 @@ Types without platform-specific code are not listed.
 | `PowerManager` | Works | Tested on a desktop only (no battery). |
 | `Audio` | Works | Hot plugging (such as Bluetooth headphones) and renaming endpoints are untested. |
 | `MediaSessions` | Works | Tested with a test session, not yet with real players. |
+| `NotifyIcons` | Works | The system tray, beside Explorer's. Menus are each program's own, opened by `contextMenu()`. Cannot run alongside other programs that show the tray, such as yasb's tray widget. Tested with a single monitor only. |
 
 ## Planned
 

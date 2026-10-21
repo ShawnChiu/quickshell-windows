@@ -5,6 +5,7 @@
 #include <cwchar>
 #include <iterator>
 #include <thread>
+#include <utility>
 #include <vector>
 
 // The other Windows headers need it first.
@@ -13,11 +14,18 @@
 // clang-format on
 
 #include <qdebug.h>
+#include <qfileinfo.h>
+#include <qguiapplication.h>
+#include <qhash.h>
 #include <qimage.h>
 #include <qlogging.h>
 #include <qloggingcategory.h>
+#include <qmutex.h>
 #include <qnamespace.h>
 #include <qobject.h>
+#include <qpoint.h>
+#include <qscreen.h>
+#include <qscreen_platform.h>
 #include <qstring.h>
 #include <qtypes.h>
 #include <quuid.h>
@@ -25,6 +33,7 @@
 #include <shlwapi.h>
 
 #include "../core/logcat.hpp"
+#include "../core/model.hpp"
 
 namespace qs::windows {
 
@@ -84,19 +93,86 @@ constexpr UINT TIMER_MS = 100;
 constexpr UINT FORWARD_TIMEOUT_MS = 5000;
 constexpr ULONGLONG EXPLORER_START_MS = 10000;
 
-bool isExplorer(HWND hwnd) {
-	DWORD pid = 0;
-	GetWindowThreadProcessId(hwnd, &pid);
-
+QString processPath(DWORD pid) {
 	auto* process = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
-	if (!process) return false;
+	if (!process) return {};
 
 	wchar_t path[MAX_PATH];
 	auto size = static_cast<DWORD>(std::size(path));
 	auto ok = QueryFullProcessImageNameW(process, 0, path, &size);
 	CloseHandle(process);
 
-	return ok && QString::fromWCharArray(path, size).endsWith(u"\\explorer.exe", Qt::CaseInsensitive);
+	return ok ? QString::fromWCharArray(path, size) : QString();
+}
+
+bool isExplorer(HWND hwnd) {
+	DWORD pid = 0;
+	GetWindowThreadProcessId(hwnd, &pid);
+	return processPath(pid).endsWith(u"\\explorer.exe", Qt::CaseInsensitive);
+}
+
+QString fileDescription(const QString& path) {
+	static auto cache = QHash<QString, QString>();
+	if (auto cached = cache.constFind(path); cached != cache.constEnd()) return *cached;
+
+	const auto* nativePath = reinterpret_cast<const wchar_t*>(path.utf16()); // NOLINT
+	QString description;
+
+	struct Translation {
+		WORD language;
+		WORD codePage;
+	};
+
+	if (auto size = GetFileVersionInfoSizeW(nativePath, nullptr)) {
+		auto info = std::vector<char>(size);
+		Translation* translation = nullptr;
+		UINT length = 0;
+
+		if (GetFileVersionInfoW(nativePath, 0, size, info.data())
+		    && VerQueryValueW(
+		        info.data(),
+		        L"\\VarFileInfo\\Translation",
+		        reinterpret_cast<void**>(&translation), // NOLINT
+		        &length
+		    )
+		    && length >= sizeof(Translation))
+		{
+			auto key = QString("\\StringFileInfo\\%1%2\\FileDescription")
+			               .arg(translation->language, 4, 16, QChar('0'))
+			               .arg(translation->codePage, 4, 16, QChar('0'));
+
+			wchar_t* value = nullptr;
+			if (VerQueryValueW(
+			        info.data(),
+			        reinterpret_cast<const wchar_t*>(key.utf16()), // NOLINT
+			        reinterpret_cast<void**>(&value),              // NOLINT
+			        &length
+			    )
+			    && length > 0)
+			{
+				auto chars = static_cast<qsizetype>(wcsnlen(value, length));
+				description = QString::fromWCharArray(value, chars).trimmed();
+			}
+		}
+	}
+
+	cache.insert(path, description);
+	return description;
+}
+
+// Qt's global coordinates are scaled per screen, the program's are physical.
+POINT toPhysical(QPointF point) {
+	auto* screen = QGuiApplication::screenAt(point.toPoint());
+	auto* native = screen ? screen->nativeInterface<QNativeInterface::QWindowsScreen>() : nullptr;
+
+	auto info = MONITORINFO {};
+	info.cbSize = sizeof(MONITORINFO);
+	if (!native || !GetMonitorInfoW(native->handle(), &info)) {
+		return POINT {static_cast<LONG>(point.x()), static_cast<LONG>(point.y())};
+	}
+
+	auto offset = ((point - screen->geometry().topLeft()) * screen->devicePixelRatio()).toPoint();
+	return POINT {info.rcMonitor.left + offset.x(), info.rcMonitor.top + offset.y()};
 }
 
 } // namespace
@@ -499,26 +575,125 @@ NotifyIconService* NotifyIconService::instance() {
 }
 
 void NotifyIconService::updateIcon(const NotifyIconData& icon) {
-	auto existing = std::ranges::find(this->mIcons, icon.key, &NotifyIconData::key);
+	const auto& list = this->mIcons.valueList();
+	auto existing = std::ranges::find(list, icon.key, &NotifyIcon::key);
 
-	if (existing == this->mIcons.end()) {
+	if (existing == list.end()) {
 		qCDebug(logNotifyIcons) << "Added" << icon;
-		this->mIcons.append(icon);
-		emit this->iconAdded(icon);
+		this->mIcons.insertObject(new NotifyIcon(icon, this));
 	} else {
 		qCDebug(logNotifyIcons) << "Changed" << icon;
-		*existing = icon;
-		emit this->iconChanged(icon);
+		(*existing)->update(icon);
 	}
 }
 
 void NotifyIconService::removeIcon(quint64 key) {
-	auto existing = std::ranges::find(this->mIcons, key, &NotifyIconData::key);
-	if (existing == this->mIcons.end()) return;
+	const auto& list = this->mIcons.valueList();
+	auto existing = std::ranges::find(list, key, &NotifyIcon::key);
+	if (existing == list.end()) return;
 
-	qCDebug(logNotifyIcons) << "Removed" << *existing;
-	this->mIcons.erase(existing);
-	emit this->iconRemoved(key);
+	auto* icon = *existing;
+	qCDebug(logNotifyIcons) << "Removed" << icon->appName() << icon->iconId();
+	this->mIcons.removeObject(icon);
+	icon->deleteLater();
+}
+
+void NotifyIconImage::setImage(QImage image) {
+	{
+		auto lock = QMutexLocker(&this->mutex);
+		this->image = std::move(image);
+	}
+
+	this->imageChanged();
+}
+
+QImage
+NotifyIconImage::requestImage(const QString& /*unused*/, QSize* size, const QSize& /*unused*/) {
+	auto lock = QMutexLocker(&this->mutex);
+	if (size != nullptr) *size = this->image.size();
+	return this->image;
+}
+
+NotifyIcon::NotifyIcon(const NotifyIconData& data, QObject* parent)
+    : QObject(parent)
+    , mKey(data.key)
+    , mHwnd(data.hwnd)
+    , mId(data.id)
+    , mProcessId(static_cast<qint32>(data.processId))
+    , mAppPath(processPath(data.processId))
+    , mGuid(data.guid.isNull() ? QString() : data.guid.toString(QUuid::WithoutBraces)) {
+	if (!this->mAppPath.isEmpty()) {
+		this->mAppName = fileDescription(this->mAppPath);
+		if (this->mAppName.isEmpty()) this->mAppName = QFileInfo(this->mAppPath).completeBaseName();
+	}
+
+	this->update(data);
+}
+
+void NotifyIcon::update(const NotifyIconData& data) {
+	this->mCallbackMessage = data.callbackMessage;
+	this->mVersion = data.version;
+
+	if (data.icon != this->mImage) {
+		this->mImage = data.icon;
+		this->image.setImage(data.icon);
+		this->bIcon = data.icon.isNull() ? QString() : this->image.url();
+	}
+
+	this->bTooltip = data.tooltip;
+	this->bHidden = data.hidden;
+}
+
+void NotifyIcon::send(quint32 message, qint32 x, qint32 y) const {
+	if (this->mCallbackMessage == 0) return;
+
+	// Lets the program take the foreground for its menu or window.
+	AllowSetForegroundWindow(static_cast<DWORD>(this->mProcessId));
+	auto* hwnd = reinterpret_cast<HWND>(this->mHwnd); // NOLINT
+
+	if (this->mVersion >= NOTIFYICON_VERSION_4) {
+		PostMessageW(
+		    hwnd,
+		    this->mCallbackMessage,
+		    MAKEWPARAM(static_cast<WORD>(x), static_cast<WORD>(y)),
+		    MAKELPARAM(static_cast<WORD>(message), static_cast<WORD>(this->mId))
+		);
+	} else {
+		PostMessageW(hwnd, this->mCallbackMessage, this->mId, message);
+	}
+}
+
+void NotifyIcon::click() {
+	auto cursor = POINT {};
+	GetCursorPos(&cursor);
+
+	this->send(WM_LBUTTONDOWN, cursor.x, cursor.y);
+	this->send(WM_LBUTTONUP, cursor.x, cursor.y);
+	if (this->mVersion >= NOTIFYICON_VERSION) this->send(NIN_SELECT, cursor.x, cursor.y);
+}
+
+void NotifyIcon::doubleClick() {
+	auto cursor = POINT {};
+	GetCursorPos(&cursor);
+
+	this->send(WM_LBUTTONDBLCLK, cursor.x, cursor.y);
+	this->send(WM_LBUTTONUP, cursor.x, cursor.y);
+}
+
+void NotifyIcon::middleClick() {
+	auto cursor = POINT {};
+	GetCursorPos(&cursor);
+
+	this->send(WM_MBUTTONDOWN, cursor.x, cursor.y);
+	this->send(WM_MBUTTONUP, cursor.x, cursor.y);
+}
+
+void NotifyIcon::contextMenu(qreal x, qreal y) {
+	auto anchor = toPhysical(QPointF(x, y));
+
+	this->send(WM_RBUTTONDOWN, anchor.x, anchor.y);
+	this->send(WM_RBUTTONUP, anchor.x, anchor.y);
+	if (this->mVersion >= NOTIFYICON_VERSION) this->send(WM_CONTEXTMENU, anchor.x, anchor.y);
 }
 
 } // namespace qs::windows
