@@ -50,7 +50,7 @@ boption(FRAME_POINTERS "Keep Frame Pointers (dev)" ${ASAN})
 
 # Linux desktop integrations which have no windows implementation.
 # DBus services build on windows too: with no session bus they stay empty.
-# UPower and Mpris are off since src/windows provides them.
+# UPower, Mpris and SystemTray are off since src/windows provides them.
 if (WIN32)
 	set(QS_UNIX_DEFAULT OFF)
 	set(QS_WINDOWS_DEFAULT ON)
@@ -82,7 +82,7 @@ boption(SCREENCOPY_HYPRLAND_TOPLEVEL "    Hyprland Toplevel Export" ON REQUIRES 
 boption(X11 "X11" ${QS_UNIX_DEFAULT})
 boption(I3 "I3/Sway" ${QS_UNIX_DEFAULT})
 boption(I3_IPC "  I3/Sway IPC" ON REQUIRES I3)
-boption(SERVICE_STATUS_NOTIFIER "System Tray" ON)
+boption(SERVICE_STATUS_NOTIFIER "System Tray" ${QS_UNIX_DEFAULT})
 boption(SERVICE_PIPEWIRE "PipeWire" ${QS_UNIX_DEFAULT})
 boption(SERVICE_MPRIS "Mpris" ${QS_UNIX_DEFAULT})
 boption(SERVICE_PAM "Pam" ${QS_UNIX_DEFAULT})

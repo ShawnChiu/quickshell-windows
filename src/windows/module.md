@@ -20,8 +20,9 @@ PipeWire. Only available in Windows builds of this fork.
 Most of a config written for Linux loads unchanged:
 - @@Quickshell.PanelWindow reserves screen space through the Win32 AppBar API, the way the
   taskbar does.
-- @@Quickshell.Services.UPower and @@Quickshell.Services.Mpris are backed by @@PowerManager
-  and @@MediaSessions.
+- @@Quickshell.Services.UPower, @@Quickshell.Services.Mpris and
+  @@Quickshell.Services.SystemTray are backed by @@PowerManager, @@MediaSessions and
+  @@NotifyIcons.
 - @@Quickshell.Wayland can be imported, but only `BackgroundEffect.blurRegion` does anything:
   it sets @@BlurBehind.region with @@BlurBehind.xray.
 
@@ -71,6 +72,9 @@ MouseArea {
   }
 }
 ```
+
+With @@Quickshell.Services.SystemTray, `hasMenu` is false, and a right click calls
+`display()` instead, which opens the program's menu the same way.
 
 ## Window managers
 

@@ -50,8 +50,8 @@ Types without platform-specific code are not listed.
 | `Quickshell.Services.UPower` | Windows backed | By `PowerManager`. Batteries are laptop batteries and `displayDevice` is all of them combined. `PowerProfiles` maps to the power mode: Best power efficiency, Balanced and Best performance. Peripheral batteries are not listed, and there are no profile holds or degradation reasons. Tested on a desktop only (no battery). |
 | `Quickshell.Services.Mpris` | Windows backed | By `MediaSessions`. Track info, art (as an image url), position, length, playback state, loop, shuffle and rate; `raise` activates the app's window. Players cannot quit, go fullscreen, open uris or report their volume. Tested with a test session, not yet with real players. |
 | `Quickshell.Services.Pipewire` | Unavailable | Use `Quickshell.Windows.Audio` from a file loaded only on Windows. |
-| `Quickshell.Services.SystemTray` | Inert | Talks to DBus, which Windows does not have. Logs one "Could not connect to DBus" warning when first used. |
-| `Quickshell.Services.Notifications` | Inert | As above. |
+| `Quickshell.Services.SystemTray` | Windows backed | By `NotifyIcons`. Menus are each program's own: `hasMenu` is false and `menu` is null, but `display()` opens the program's menu, so call it on right click. `id` is the icon's GUID, or the program's file name without `.exe` and the icon's number, such as `Everything_0`. Hidden icons are `Passive`, every item is `ApplicationStatus`, and `scroll()` does nothing. Tested with a single monitor only. |
+| `Quickshell.Services.Notifications` | Inert | Talks to DBus, which Windows does not have. Logs one "Could not connect to DBus" warning when first used. |
 | `Quickshell.Bluetooth` | Inert | As above. |
 | `Quickshell.Services.Pam`, `Polkit`, `Greetd` | Unavailable | |
 | `Quickshell.Networking` | Unavailable | |
@@ -92,7 +92,6 @@ Types without platform-specific code are not listed.
 ## Planned
 
 - Display brightness through WMI, for built-in laptop displays only.
-- System tray, beside Explorer. Menus are each program's own native menu.
 
 ## Not planned
 
@@ -107,3 +106,5 @@ Types without platform-specific code are not listed.
 - While another program running as administrator manages the taskbar (seen with yasb and
   komorebi), Explorer rejects AppBar registration from non-elevated processes. Panels are still
   placed but do not reserve space unless quickshell runs as administrator too.
+- `SystemTray` and `NotifyIcons` cannot run alongside other programs that show the system tray
+  beside Explorer, such as yasb's or Zebar's tray widget. Only one of them gets the icons.

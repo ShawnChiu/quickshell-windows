@@ -45,3 +45,7 @@ endif()
 if (NOT SERVICE_MPRIS)
 	add_subdirectory(mpris)
 endif()
+
+if (NOT SERVICE_STATUS_NOTIFIER)
+	add_subdirectory(systray)
+endif()

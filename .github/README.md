@@ -21,10 +21,11 @@ the latest one are the current patches.
 ## Status
 
 Work in progress, used daily as a bar on Windows 11. Configs written for Linux load: panels
-reserve screen space like the taskbar, `Process`, IPC and `DesktopEntries` work, UPower and
-Mpris are backed by Windows, and the Wayland and DBus modules can be imported but do nothing.
-`import Quickshell.Windows` adds Windows-only types for idle, window handles, blur, power, audio
-and media.
+reserve screen space like the taskbar, `Process`, IPC and `DesktopEntries` work, UPower, Mpris
+and SystemTray are backed by Windows, and the Wayland and other DBus modules can be imported but
+do nothing.
+`import Quickshell.Windows` adds Windows-only types for idle, window handles, blur, power, audio,
+media and the system tray.
 
 - [PORTING.md](PORTING.md): what works, what differs from Linux, and what is not available.
 - [src/windows/module.md](../src/windows/module.md) and the headers in
