@@ -92,11 +92,12 @@ Types without platform-specific code are not listed.
 ## Planned
 
 - Display brightness through WMI, for built-in laptop displays only.
+- Notifications, read from the Windows notification center. Windows still shows its own
+  banners.
 
 ## Not planned
 
 - Replacing `explorer.exe`. Quickshell runs beside it.
-- Notifications, for now: taking them over from Explorer is not practical.
 - New types for what configs do themselves through commands on Linux too (reading procfs,
   `systemctl` power actions, clipboard history, package updates). Configs do the same on
   Windows with Windows commands.
