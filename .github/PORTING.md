@@ -91,11 +91,12 @@ Types without platform-specific code are not listed.
 ## Planned
 
 - Display brightness through WMI, for built-in laptop displays only.
+- System tray, beside Explorer. Menus are each program's own native menu.
 
 ## Not planned
 
 - Replacing `explorer.exe`. Quickshell runs beside it.
-- System tray and notifications, for now: taking them over from Explorer is not practical.
+- Notifications, for now: taking them over from Explorer is not practical.
 - New types for what configs do themselves through commands on Linux too (reading procfs,
   `systemctl` power actions, clipboard history, package updates). Configs do the same on
   Windows with Windows commands.
