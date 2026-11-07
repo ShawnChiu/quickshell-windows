@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <chrono>
+#include <cstddef>
 #include <string>
 #include <utility>
 #include <vector>
@@ -11,12 +12,12 @@
 
 #include <NotificationActivationCallback.h>
 #include <qbytearray.h>
-#include <qcoreapplication.h>
 #include <qbytearrayview.h>
 #include <qcontainerfwd.h>
+#include <qcoreapplication.h>
 #include <qdatetime.h>
-#include <qdir.h>
 #include <qdebug.h>
+#include <qdir.h>
 #include <qelapsedtimer.h>
 #include <qfileinfo.h>
 #include <qhash.h>
@@ -29,8 +30,10 @@
 #include <qprocess.h>
 #include <qset.h>
 #include <qstring.h>
+#include <qtenvironmentvariables.h>
 #include <qthreadpool.h>
 #include <qtimezone.h>
+#include <qtmetamacros.h>
 #include <qtypes.h>
 #include <qurl.h>
 #include <quuid.h>
@@ -466,7 +469,7 @@ QString Toast::image() const {
 
 void Toast::activate() { this->invoke(this->mData.launchType, this->mData.launch, {}); }
 
-void Toast::remove() { ToastService::instance()->remove(this->mData.id); }
+void Toast::remove() const { ToastService::remove(this->mData.id); }
 
 void Toast::invoke(
     const QString& activationType,

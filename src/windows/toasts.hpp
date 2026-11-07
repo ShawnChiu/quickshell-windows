@@ -180,7 +180,7 @@ public:
 	/// with @@ToastAction.invoke(), this may open the app instead.
 	Q_INVOKABLE void activate();
 	/// Removes the toast from the notification center.
-	Q_INVOKABLE void remove();
+	Q_INVOKABLE void remove() const;
 
 	[[nodiscard]] const ToastData& data() const { return this->mData; }
 
@@ -291,7 +291,7 @@ public:
 	explicit ToastsQml(QObject* parent = nullptr);
 
 	/// Removes every toast from the notification center, including those of other apps.
-	Q_INVOKABLE static void clear() { ToastService::instance()->clear(); }
+	Q_INVOKABLE static void clear() { ToastService::clear(); }
 
 	[[nodiscard]] static ObjectModel<Toast>* toasts() { return ToastService::instance()->model(); }
 	[[nodiscard]] static bool allowed() {
