@@ -16,6 +16,7 @@
 #include <io.h>
 #include <qcoreapplication.h>
 #include <qlogging.h>
+#include <qstandardpaths.h>
 #include <qtenvironmentvariables.h>
 #include <windows.h>
 #include <winioctl.h>
@@ -203,7 +204,11 @@ void removeDirLink(const QString& link) {
 	if (!RemoveDirectoryW(linkPath)) DeleteFileW(linkPath);
 }
 
-QString defaultRuntimeDir() { return QDir::tempPath(); }
+QString defaultRuntimeDir() {
+	// Not %TEMP%: Storage Sense deletes the junctions in it.
+	auto base = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation);
+	return QDir(base).filePath("quickshell/run");
+}
 
 bool sendSignal(qint64 pid, int signal) {
 	// SIGINT, SIGKILL, SIGTERM
