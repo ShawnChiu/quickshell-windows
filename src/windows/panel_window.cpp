@@ -19,10 +19,8 @@
 #include <qtmetamacros.h>
 #include <qtypes.h>
 #include <qwindow.h>
-
-// windows.h has to come before shellapi.h
 #include <windows.h>
-
+// windows.h has to come before shellapi.h
 #include <shellapi.h>
 
 #include "../core/logcat.hpp"
@@ -51,13 +49,15 @@ QHash<HWND, WinPanelWindow*>& registeredAppBars() {
 QPoint toNative(QPoint point, QScreen* screen) {
 	auto origin = screen->geometry().topLeft();
 	auto dpr = screen->devicePixelRatio();
-	return origin + QPoint(qRound((point.x() - origin.x()) * dpr), qRound((point.y() - origin.y()) * dpr));
+	return origin
+	     + QPoint(qRound((point.x() - origin.x()) * dpr), qRound((point.y() - origin.y()) * dpr));
 }
 
 QPoint fromNative(QPoint point, QScreen* screen) {
 	auto origin = screen->geometry().topLeft();
 	auto dpr = screen->devicePixelRatio();
-	return origin + QPoint(qRound((point.x() - origin.x()) / dpr), qRound((point.y() - origin.y()) / dpr));
+	return origin
+	     + QPoint(qRound((point.x() - origin.x()) / dpr), qRound((point.y() - origin.y()) / dpr));
 }
 
 RECT toNativeRect(const QRect& rect, QScreen* screen) {
