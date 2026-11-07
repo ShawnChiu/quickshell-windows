@@ -3,7 +3,6 @@
 #include <qscreen.h>
 #include <qscreen_platform.h>
 #include <qstring.h>
-
 #include <windows.h>
 
 #include "../core/qmlscreen.hpp"
