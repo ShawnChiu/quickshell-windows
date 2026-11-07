@@ -12,8 +12,11 @@
 #include <NotificationActivationCallback.h>
 #include <qbytearray.h>
 #include <qcoreapplication.h>
+#include <qbytearrayview.h>
+#include <qcontainerfwd.h>
 #include <qdatetime.h>
 #include <qdir.h>
+#include <qdebug.h>
 #include <qelapsedtimer.h>
 #include <qfileinfo.h>
 #include <qhash.h>
@@ -88,7 +91,7 @@ constexpr int POLL_INTERVAL = 30000;
 constexpr int POLL_INTERVAL_WITHOUT_WNF = 5000;
 
 constexpr int LOGO_SIZE = 64;
-constexpr quint64 MAX_LOGO_SIZE = 4 * 1024 * 1024;
+constexpr quint64 MAX_LOGO_SIZE = 4ULL * 1024 * 1024;
 
 QString fromHString(const winrt::hstring& string) {
 	return QString::fromWCharArray(string.c_str(), static_cast<qsizetype>(string.size()));
@@ -832,7 +835,9 @@ void ToastService::finishSnapshot() {
 		qCDebug(logToasts) << "Could not read access status:" << fromHString(e.message());
 	}
 
-	if (auto* source = std::exchange(this->pendingSource, nullptr)) this->requestSnapshot(source);
+	if (const auto* source = std::exchange(this->pendingSource, nullptr)) {
+		this->requestSnapshot(source);
+	}
 }
 
 void ToastService::applySnapshot(

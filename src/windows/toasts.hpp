@@ -228,8 +228,8 @@ public:
 	[[nodiscard]] bool isReady() const { return this->mReady; }
 	[[nodiscard]] AccessStatus accessStatus() const { return this->mAccessStatus; }
 
-	void remove(quint32 id);
-	void clear();
+	static void remove(quint32 id);
+	static void clear();
 
 signals:
 	void ready();
