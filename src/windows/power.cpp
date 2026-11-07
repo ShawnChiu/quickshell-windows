@@ -2,6 +2,7 @@
 #include <utility>
 
 #include <qcoreapplication.h>
+#include <qdebug.h>
 #include <qlogging.h>
 #include <qloggingcategory.h>
 #include <qnamespace.h>
@@ -331,17 +332,14 @@ void PowerService::refreshPowerMode(EffectivePowerMode::Enum effective) {
 	    reinterpret_cast<PowerGetActualOverlaySchemeFn>(powrprofProc("PowerGetActualOverlayScheme"));
 
 	GUID overlay {};
-	if (!getOverlay || getOverlay(&overlay) != ERROR_SUCCESS) {
-		this->bPowerMode = PowerMode::Unknown;
-	} else if (overlay == OVERLAY_BEST_POWER_EFFICIENCY) {
-		this->bPowerMode = PowerMode::BestPowerEfficiency;
-	} else if (overlay == OVERLAY_BALANCED) {
-		this->bPowerMode = PowerMode::Balanced;
-	} else if (overlay == OVERLAY_BEST_PERFORMANCE) {
-		this->bPowerMode = PowerMode::BestPerformance;
-	} else {
-		this->bPowerMode = PowerMode::Unknown;
+	auto mode = PowerMode::Unknown;
+	if (getOverlay && getOverlay(&overlay) == ERROR_SUCCESS) {
+		if (overlay == OVERLAY_BEST_POWER_EFFICIENCY) mode = PowerMode::BestPowerEfficiency;
+		else if (overlay == OVERLAY_BALANCED) mode = PowerMode::Balanced;
+		else if (overlay == OVERLAY_BEST_PERFORMANCE) mode = PowerMode::BestPerformance;
 	}
+
+	this->bPowerMode = mode;
 }
 
 void PowerService::setPowerMode(PowerMode::Enum mode) {

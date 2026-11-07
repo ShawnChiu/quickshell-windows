@@ -1,9 +1,10 @@
 #include "core.hpp"
 
+#include <qminmax.h>
+#include <qnumeric.h>
 #include <qobject.h>
 #include <qproperty.h>
 #include <qstring.h>
-#include <qtypes.h>
 
 #include "../../core/model.hpp"
 #include "../power.hpp"
@@ -150,10 +151,10 @@ UPowerDevice::UPowerDevice(Battery* battery, bool display, QObject* parent): QOb
 		if (state == UPowerDeviceState::Unknown) return "battery-missing-symbolic";
 
 		auto percentage = this->bPercentage * 100;
-		auto level = percentage < 10 ? "caution"
-		           : percentage < 30 ? "low"
-		           : percentage < 60 ? "good"
-		                             : "full";
+		const auto* level = percentage < 10 ? "caution"
+		                  : percentage < 30 ? "low"
+		                  : percentage < 60 ? "good"
+		                                    : "full";
 
 		return state == UPowerDeviceState::Charging || state == UPowerDeviceState::PendingCharge
 		         ? QString("battery-%1-charging-symbolic").arg(level)
