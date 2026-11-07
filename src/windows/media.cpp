@@ -17,6 +17,7 @@
 #include <qdatetime.h>
 #include <qfileinfo.h>
 #include <qimage.h>
+#include <qlist.h>
 #include <qlogging.h>
 #include <qloggingcategory.h>
 #include <qmutex.h>
@@ -26,6 +27,7 @@
 #include <qproperty.h>
 #include <qstring.h>
 #include <qtimezone.h>
+#include <qtmetamacros.h>
 #include <qtypes.h>
 #include <shellapi.h>
 #include <winrt/Windows.ApplicationModel.h>
@@ -55,7 +57,7 @@ using Session = wmc::GlobalSystemMediaTransportControlsSession;
 using SessionManager = wmc::GlobalSystemMediaTransportControlsSessionManager;
 
 // Thumbnails are a few hundred KiB at most, anything larger is not one.
-constexpr quint64 MAX_THUMBNAIL_SIZE = 16 * 1024 * 1024;
+constexpr quint64 MAX_THUMBNAIL_SIZE = 16ULL * 1024 * 1024;
 
 // The SDK's key needs propkey.h with INITGUID.
 constexpr PROPERTYKEY KEY_APP_USER_MODEL_ID = {

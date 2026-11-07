@@ -2,9 +2,11 @@
 
 #include <qcontainerfwd.h>
 #include <qlogging.h>
+#include <qnamespace.h>
 #include <qobject.h>
 #include <qproperty.h>
 #include <qstring.h>
+#include <qtmetamacros.h>
 #include <qtypes.h>
 
 #include "../media.hpp"
