@@ -19,6 +19,8 @@
 
 #include <array>
 #include <cstring>
+#include <cwchar>
+#include <memory>
 #include <utility>
 #include <vector>
 
@@ -31,6 +33,7 @@
 #include <qlogging.h>
 #include <qloggingcategory.h>
 #include <qnamespace.h>
+#include <qnumeric.h>
 #include <qobject.h>
 #include <qrect.h>
 #include <qregion.h>
@@ -73,8 +76,10 @@ struct D2DEffect
 	    , properties(std::move(properties))
 	    , source(std::move(source)) {}
 
-	winrt::hstring Name() { return this->name; }
+	// NOLINTBEGIN(readability-identifier-naming)
+	winrt::hstring Name() const { return this->name; }
 	void Name(const winrt::hstring& name) { this->name = name; }
+	// NOLINTEND(readability-identifier-naming)
 
 	HRESULT __stdcall GetEffectId(GUID* id) noexcept override {
 		*id = this->id;
@@ -125,7 +130,9 @@ struct D2DEffect
 
 // Scales colour away from its luminance, as niri and CSS's saturate() do.
 std::array<float, 20> saturationMatrix(float s) {
-	const float r = 0.2126f, g = 0.7152f, b = 0.0722f;
+	const float r = 0.2126f;
+	const float g = 0.7152f;
+	const float b = 0.0722f;
 	// clang-format off
 	return {
 		r + (1 - r) * s, r - r * s,       r - r * s,       0,
@@ -307,7 +314,7 @@ BlurBackdrop::BlurBackdrop(QWindow* window)
 	if (window->handle()) this->onSurfaceCreated();
 }
 
-BlurBackdrop::~BlurBackdrop() {
+BlurBackdrop::~BlurBackdrop() { // NOLINT(bugprone-exception-escape)
 	this->onSurfaceDestroyed();
 
 	auto* n = this->native.get();
@@ -463,7 +470,9 @@ void BlurBackdrop::ensureCreated() {
 
 		// The blur fills the window and is masked by the region, drawn as white rects
 		// into a surface. Blurring each rect on its own would blur them separately.
-		n->white = compositor.CreateColorBrush(winrt::Windows::UI::Color {255, 255, 255, 255});
+		n->white = compositor.CreateColorBrush(
+		    winrt::Windows::UI::Color {.A = 255, .R = 255, .G = 255, .B = 255}
+		);
 		n->shape = compositor.CreateContainerVisual();
 		n->surface = compositor.CreateVisualSurface();
 		n->surface.SourceVisual(n->shape);
@@ -541,8 +550,8 @@ void BlurBackdrop::updateBrush() {
 		if (n->opaque) {
 			auto light = readPersonalize(L"AppsUseLightTheme", 0) != 0;
 			// The solid backgrounds Windows uses for Mica when it is off.
-			auto color = light ? winrt::Windows::UI::Color {255, 0xf3, 0xf3, 0xf3}
-			                   : winrt::Windows::UI::Color {255, 0x20, 0x20, 0x20};
+			auto color = light ? winrt::Windows::UI::Color {.A = 255, .R = 0xf3, .G = 0xf3, .B = 0xf3}
+			                   : winrt::Windows::UI::Color {.A = 255, .R = 0x20, .G = 0x20, .B = 0x20};
 			n->mask.Source(compositor.CreateColorBrush(color));
 			return;
 		}

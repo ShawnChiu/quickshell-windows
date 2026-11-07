@@ -1,6 +1,7 @@
 #include "blur_behind.hpp"
 
 #include <qnamespace.h>
+#include <qnumeric.h>
 #include <qobject.h>
 #include <qquickwindow.h>
 #include <qrect.h>

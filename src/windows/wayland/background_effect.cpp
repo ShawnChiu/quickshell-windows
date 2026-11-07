@@ -2,6 +2,7 @@
 
 #include <qobject.h>
 #include <qqml.h>
+#include <qtmetamacros.h>
 
 #include "../../core/region.hpp"
 #include "../blur_behind.hpp"
