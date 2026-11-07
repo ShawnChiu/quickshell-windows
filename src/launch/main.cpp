@@ -98,7 +98,6 @@ void exitDaemon(int code) {
 	DAEMON_PIPE = -1;
 
 	// The daemon is started without a console, so stdio is already detached.
-	return;
 #else
 	if (write(DAEMON_PIPE, &code, sizeof(int)) == -1) {
 		qCritical().nospace() << "Failed to write daemon exit command with error code " << errno << ": "
