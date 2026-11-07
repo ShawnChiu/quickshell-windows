@@ -1,5 +1,6 @@
 #include "notify_icons.hpp"
 #include <algorithm>
+#include <array>
 #include <cstddef>
 #include <cstring>
 #include <cwchar>
@@ -43,6 +44,7 @@ QS_LOGGING_CATEGORY(logNotifyIcons, "quickshell.windows.notifyicons", QtWarningM
 
 // NOTIFYICONDATAW as Shell_NotifyIcon sends it, with 32 bit handles so 32 and 64 bit programs agree.
 struct NotifyIconData32 {
+// NOLINTBEGIN(*-avoid-c-arrays)
 	DWORD cbSize;
 	DWORD hWnd;
 	UINT uID;
@@ -60,6 +62,7 @@ struct NotifyIconData32 {
 	DWORD hBalloonIcon;
 };
 
+// NOLINTEND(*-avoid-c-arrays)
 struct TrayData {
 	DWORD signature;
 	DWORD message;
@@ -175,8 +178,6 @@ POINT toPhysical(QPointF point) {
 	return POINT {info.rcMonitor.left + offset.x(), info.rcMonitor.top + offset.y()};
 }
 
-} // namespace
-
 QDebug operator<<(QDebug debug, const NotifyIconData& icon) {
 	auto saver = QDebugStateSaver(debug);
 	debug.nospace() << "NotifyIcon(pid=" << icon.processId << ", id=" << icon.id;
@@ -187,6 +188,8 @@ QDebug operator<<(QDebug debug, const NotifyIconData& icon) {
 }
 
 // Lives on its own thread, since every Shell_NotifyIcon and SHAppBarMessage call blocks on it.
+} // namespace
+
 class NotifyIconServicePrivate {
 public:
 	explicit NotifyIconServicePrivate(NotifyIconService* service): service(service) {}
@@ -203,11 +206,11 @@ public:
 	void takeOver();
 	void yieldToExplorer();
 	void raise();
-	void broadcastTaskbarCreated();
+	void broadcastTaskbarCreated() const;
 	void handleTrayData(const COPYDATASTRUCT* data);
 	void removeStale();
-	void postUpdate(const NotifyIconData& icon);
-	void postRemove(quint64 key);
+	void postUpdate(const NotifyIconData& icon) const;
+	void postRemove(quint64 key) const;
 
 	NotifyIconService* service;
 	HWND hwnd = nullptr;
@@ -374,9 +377,9 @@ LRESULT NotifyIconServicePrivate::forwardAppBar(WPARAM wParam, const COPYDATASTR
 	// SHAppBarMessage allocates the reply for our process, which Explorer can't open while we run as
 	// administrator, and passes an in-process block when the caller is this process.
 	auto* source = SHLockShared(
-	    reinterpret_cast<HANDLE>(message.sharedMemory),
+	    reinterpret_cast<HANDLE>(message.sharedMemory), // NOLINT
 	    message.sourceProcessId
-	); // NOLINT
+	);
 
 	// Fails for callers running as administrator while we don't, which then get no reply.
 	auto* copy = SHAllocShared(source ? source : &message.abd, sizeof(AppBarData32), explorerPid);
@@ -455,7 +458,7 @@ void NotifyIconServicePrivate::raise() {
 	);
 }
 
-void NotifyIconServicePrivate::broadcastTaskbarCreated() {
+void NotifyIconServicePrivate::broadcastTaskbarCreated() const {
 	SendNotifyMessageW(HWND_BROADCAST, this->taskbarCreated, 0, 0);
 }
 
@@ -549,7 +552,7 @@ void NotifyIconServicePrivate::removeStale() {
 	}
 }
 
-void NotifyIconServicePrivate::postUpdate(const NotifyIconData& icon) {
+void NotifyIconServicePrivate::postUpdate(const NotifyIconData& icon) const {
 	QMetaObject::invokeMethod(
 	    this->service,
 	    [service = this->service, icon]() { service->updateIcon(icon); },
@@ -557,7 +560,7 @@ void NotifyIconServicePrivate::postUpdate(const NotifyIconData& icon) {
 	);
 }
 
-void NotifyIconServicePrivate::postRemove(quint64 key) {
+void NotifyIconServicePrivate::postRemove(quint64 key) const {
 	QMetaObject::invokeMethod(
 	    this->service,
 	    [service = this->service, key]() { service->removeIcon(key); },
