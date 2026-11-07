@@ -27,6 +27,7 @@
 #include <qpoint.h>
 #include <qscreen.h>
 #include <qscreen_platform.h>
+#include <qsize.h>
 #include <qstring.h>
 #include <qtypes.h>
 #include <quuid.h>
@@ -43,8 +44,8 @@ namespace {
 QS_LOGGING_CATEGORY(logNotifyIcons, "quickshell.windows.notifyicons", QtWarningMsg);
 
 // NOTIFYICONDATAW as Shell_NotifyIcon sends it, with 32 bit handles so 32 and 64 bit programs agree.
-struct NotifyIconData32 {
 // NOLINTBEGIN(*-avoid-c-arrays)
+struct NotifyIconData32 {
 	DWORD cbSize;
 	DWORD hWnd;
 	UINT uID;
@@ -61,8 +62,8 @@ struct NotifyIconData32 {
 	GUID guidItem;
 	DWORD hBalloonIcon;
 };
-
 // NOLINTEND(*-avoid-c-arrays)
+
 struct TrayData {
 	DWORD signature;
 	DWORD message;
@@ -100,12 +101,12 @@ QString processPath(DWORD pid) {
 	auto* process = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
 	if (!process) return {};
 
-	wchar_t path[MAX_PATH];
-	auto size = static_cast<DWORD>(std::size(path));
-	auto ok = QueryFullProcessImageNameW(process, 0, path, &size);
+	std::array<wchar_t, MAX_PATH> path {};
+	auto size = static_cast<DWORD>(path.size());
+	auto ok = QueryFullProcessImageNameW(process, 0, path.data(), &size);
 	CloseHandle(process);
 
-	return ok ? QString::fromWCharArray(path, size) : QString();
+	return ok ? QString::fromWCharArray(path.data(), size) : QString();
 }
 
 bool isExplorer(HWND hwnd) {
@@ -140,7 +141,7 @@ QString fileDescription(const QString& path) {
 		    )
 		    && length >= sizeof(Translation))
 		{
-			auto key = QString("\\StringFileInfo\\%1%2\\FileDescription")
+			auto key = QString(R"(\StringFileInfo\%1%2\FileDescription)")
 			               .arg(translation->language, 4, 16, QChar('0'))
 			               .arg(translation->codePage, 4, 16, QChar('0'));
 
@@ -187,9 +188,9 @@ QDebug operator<<(QDebug debug, const NotifyIconData& icon) {
 	return debug;
 }
 
-// Lives on its own thread, since every Shell_NotifyIcon and SHAppBarMessage call blocks on it.
 } // namespace
 
+// Lives on its own thread, since every Shell_NotifyIcon and SHAppBarMessage call blocks on it.
 class NotifyIconServicePrivate {
 public:
 	explicit NotifyIconServicePrivate(NotifyIconService* service): service(service) {}
