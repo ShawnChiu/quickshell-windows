@@ -13,7 +13,9 @@ namespace qs::windows::wayland {
 // Xray, as niri defaults to: the wallpaper blurred with Quickshell.Windows.WallpaperBlur.
 class BackgroundEffect: public QObject {
 	Q_OBJECT;
-	Q_PROPERTY(PendingRegion* blurRegion READ blurRegion WRITE setBlurRegion NOTIFY blurRegionChanged);
+	Q_PROPERTY(
+	    PendingRegion* blurRegion READ blurRegion WRITE setBlurRegion NOTIFY blurRegionChanged
+	);
 	QML_ELEMENT;
 	QML_UNCREATABLE("BackgroundEffect can only be used as an attached object.");
 	QML_ATTACHED(BackgroundEffect);

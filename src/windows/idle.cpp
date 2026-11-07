@@ -1,10 +1,10 @@
 #include "idle.hpp"
-
 #include <limits>
 
+#include <qminmax.h>
+#include <qnumeric.h>
 #include <qobject.h>
 #include <qtypes.h>
-
 #include <windows.h>
 
 #include "../core/reload.hpp"
