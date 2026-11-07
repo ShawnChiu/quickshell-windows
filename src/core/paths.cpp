@@ -13,6 +13,7 @@
 #include <qstandardpaths.h>
 #include <qtenvironmentvariables.h>
 #include <qtversionchecks.h>
+#include <qtypes.h>
 
 #include "instanceinfo.hpp"
 #include "logcat.hpp"
@@ -59,7 +60,7 @@ QString QsPaths::basePath(const QString& id) {
 QString QsPaths::ipcPath(const QString& id) {
 #ifdef Q_OS_WIN
 	// QLocalServer uses named pipes on windows, which live in their own namespace.
-	return QStringLiteral("quickshell-ipc-") % id;
+	return QStringLiteral("quickshell-ipc-") % id; // NOLINT(misc-include-cleaner)
 #else
 	return QDir(QsPaths::basePath(id)).filePath("ipc.sock");
 #endif

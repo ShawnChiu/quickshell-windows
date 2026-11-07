@@ -26,8 +26,8 @@ bool QmlToolingSupport::updateTooling(const QDir& configRoot, QmlScanner& scanne
 #ifdef Q_OS_WIN
 	// The tooling vfs is built from file symlinks, which QFile::link creates as .lnk shortcuts
 	// on windows. qmlls can't follow those, so tooling support is disabled there.
-	Q_UNUSED(configRoot);
-	Q_UNUSED(scanner);
+	(void) configRoot;
+	(void) scanner;
 	return false;
 #endif
 

@@ -61,7 +61,7 @@ struct MountPointReparseBuffer {
 	WORD substituteNameLength;
 	WORD printNameOffset;
 	WORD printNameLength;
-	WCHAR pathBuffer[1];
+	WCHAR pathBuffer[1]; // NOLINT(*-avoid-c-arrays): variable length, as in REPARSE_DATA_BUFFER
 };
 
 constexpr DWORD REPARSE_HEADER_SIZE = 8; // tag + data length + reserved
@@ -71,9 +71,9 @@ constexpr DWORD REPARSE_HEADER_SIZE = 8; // tag + data length + reserved
 int createAnonymousFile(const char* name) {
 	static std::atomic<quint32> counter = 0;
 
-	QString fileName = QString::fromUtf8(name).replace(':', '-') % '-'
-	              % QString::number(QCoreApplication::applicationPid()) % '-'
-	              % QString::number(counter++);
+	const QString fileName = QString::fromUtf8(name).replace(':', '-') % '-'
+	                       % QString::number(QCoreApplication::applicationPid()) % '-'
+	                       % QString::number(counter++);
 	auto path = QDir::toNativeSeparators(QDir(QDir::tempPath()).filePath(fileName));
 
 	auto* handle = CreateFileW(
@@ -132,7 +132,7 @@ bool isLockedByOther(QFile* file, qint64* /*pid*/) {
 bool createDirLink(const QString& target, const QString& link) {
 	auto nativeTarget = QDir::toNativeSeparators(QFileInfo(target).absoluteFilePath());
 	auto nativeLink = QDir::toNativeSeparators(link);
-	QString substituteName = QStringLiteral("\\??\\") % nativeTarget;
+	const QString substituteName = QStringLiteral("\\??\\") % nativeTarget;
 
 	auto substituteBytes = static_cast<WORD>(substituteName.size() * sizeof(WCHAR));
 	auto printBytes = static_cast<WORD>(nativeTarget.size() * sizeof(WCHAR));
@@ -152,7 +152,7 @@ bool createDirLink(const QString& target, const QString& link) {
 	memcpy(pathBuffer, substituteName.utf16(), substituteBytes);
 	memcpy(pathBuffer + reparse->printNameOffset, nativeTarget.utf16(), printBytes); // NOLINT
 
-	auto* linkPath = reinterpret_cast<LPCWSTR>(nativeLink.utf16());
+	const auto* linkPath = reinterpret_cast<LPCWSTR>(nativeLink.utf16());
 	if (!CreateDirectoryW(linkPath, nullptr)) return false;
 
 	auto* handle = CreateFileW(
@@ -198,7 +198,7 @@ bool createDirLink(const QString& target, const QString& link) {
 
 void removeDirLink(const QString& link) {
 	auto nativeLink = QDir::toNativeSeparators(link);
-	auto* linkPath = reinterpret_cast<LPCWSTR>(nativeLink.utf16());
+	const auto* linkPath = reinterpret_cast<LPCWSTR>(nativeLink.utf16());
 
 	// RemoveDirectoryW removes the junction itself, never the target's contents.
 	if (!RemoveDirectoryW(linkPath)) DeleteFileW(linkPath);
@@ -293,7 +293,7 @@ int spawnDaemon(const char* pipeEnv) {
 	        attributeList,
 	        0,
 	        PROC_THREAD_ATTRIBUTE_HANDLE_LIST,
-	        &writePipe,
+	        static_cast<void*>(&writePipe),
 	        sizeof(writePipe),
 	        nullptr,
 	        nullptr

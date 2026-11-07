@@ -92,11 +92,8 @@ bool copyFileData(int sourceFd, int destFd, qint64 size) {
 		size_t written = 0;
 		while (written < readBytes) {
 #ifdef Q_OS_WIN
-			auto w = _write(
-			    destFd,
-			    buffer.data() + written,
-			    static_cast<unsigned int>(readBytes - written)
-			);
+			const auto* data = buffer.data() + written; // NOLINT
+			auto w = _write(destFd, data, static_cast<unsigned int>(readBytes - written));
 #else
 			auto w = ::write(destFd, buffer.data() + written, readBytes - written);
 #endif
