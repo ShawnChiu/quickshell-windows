@@ -4,13 +4,14 @@
 #include <qdiriterator.h>
 #include <qfileinfo.h>
 #include <qhash.h>
+#include <qlist.h>
 #include <qlogging.h>
+#include <qnamespace.h>
 #include <qstring.h>
 #include <qstringlist.h>
 #include <qurl.h>
-
 #include <windows.h>
-
+// the shell headers need windows.h first
 #include <objbase.h>
 #include <objidl.h>
 #include <shlobj.h>
@@ -18,7 +19,6 @@
 
 // Defines the PKEY_* used here rather than declaring them extern.
 #include <initguid.h>
-
 #include <propkey.h>
 
 #include "desktopentry.hpp"
@@ -93,12 +93,14 @@ QHash<QString, QString> shortcutNames() {
 	auto names = QHash<QString, QString>();
 
 	IShellLinkW* link = nullptr;
-	if (FAILED(CoCreateInstance(CLSID_ShellLink, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&link)))) {
+	if (FAILED(CoCreateInstance(CLSID_ShellLink, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&link))))
+	{
 		return names;
 	}
 
 	for (const auto& root: DesktopEntryManager::desktopPaths()) {
-		auto it = QDirIterator(root, {QStringLiteral("*.lnk")}, QDir::Files, QDirIterator::Subdirectories);
+		auto it =
+		    QDirIterator(root, {QStringLiteral("*.lnk")}, QDir::Files, QDirIterator::Subdirectories);
 		while (it.hasNext()) {
 			auto path = QDir::toNativeSeparators(it.next());
 			auto target = shortcutTarget(link, path);
@@ -147,7 +149,9 @@ ParsedDesktopEntryData parseItem(IShellItem* item, const QHash<QString, QString>
 	auto isProgram = info.suffix().compare(QStringLiteral("exe"), Qt::CaseInsensitive) == 0;
 	if (isProgram) data.startupClass = info.completeBaseName();
 
-	if (auto it = shortcutNames.find(target.toLower()); !target.isEmpty() && it != shortcutNames.end()) {
+	if (auto it = shortcutNames.find(target.toLower());
+	    !target.isEmpty() && it != shortcutNames.end())
+	{
 		if (it->compare(data.name, Qt::CaseInsensitive) != 0) data.keywords.append(*it);
 	}
 
@@ -171,11 +175,13 @@ ParsedDesktopEntryData parseItem(IShellItem* item, const QHash<QString, QString>
 
 QList<ParsedDesktopEntryData> DesktopEntry::scanAppsFolder() {
 	auto entries = QList<ParsedDesktopEntryData>();
-	ComScope com;
+	const ComScope com;
 	auto names = shortcutNames();
 
 	IShellItem* folder = nullptr;
-	if (FAILED(SHGetKnownFolderItem(FOLDERID_AppsFolder, KF_FLAG_DEFAULT, nullptr, IID_PPV_ARGS(&folder))))
+	if (FAILED(
+	        SHGetKnownFolderItem(FOLDERID_AppsFolder, KF_FLAG_DEFAULT, nullptr, IID_PPV_ARGS(&folder))
+	    ))
 	{
 		qWarning() << "Could not open the Apps folder";
 		return entries;
