@@ -7,8 +7,8 @@
 #include <qhash.h>
 #include <qlogging.h>
 #include <qloggingcategory.h>
-#include <qmetaobject.h>
 #include <qnamespace.h>
+#include <qnumeric.h>
 #include <qobject.h>
 #include <qpoint.h>
 #include <qqmlengine.h>
