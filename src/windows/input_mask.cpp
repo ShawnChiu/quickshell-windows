@@ -10,6 +10,7 @@
 #include <qcoreapplication.h>
 #include <qlist.h>
 #include <qnamespace.h>
+#include <qobject.h>
 #include <qpoint.h>
 #include <qpointer.h>
 #include <qregion.h>
