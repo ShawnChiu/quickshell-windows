@@ -46,9 +46,9 @@ void SystemTrayWatcher::onIconRemoved(QObject* object) {
 	item->deleteLater();
 }
 
-// Same order as upstream's SystemTray::compareItems.
+// Same order as upstream's SystemTray::compareItems, where every item has the same category here.
 bool SystemTrayWatcher::compareItems(StatusNotifierItem* a, StatusNotifierItem* b) {
-	return a->category() < b->category() || a->id().compare(b->id(), Qt::CaseInsensitive) >= 0;
+	return a->id().compare(b->id(), Qt::CaseInsensitive) >= 0;
 }
 
 SystemTrayWatcher* SystemTrayWatcher::instance() {
