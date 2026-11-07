@@ -4,6 +4,7 @@
 #include <endpointvolume.h>
 #include <mmdeviceapi.h>
 #include <propidl.h>
+#include <qdebug.h>
 #include <qlogging.h>
 #include <qloggingcategory.h>
 #include <qnamespace.h>
@@ -55,6 +56,7 @@ bool sameKey(const PROPERTYKEY& a, const PROPERTYKEY& b) {
 
 // Undocumented interface behind Settings' output and input pickers, also used by EarTrumpet.
 // Only SetDefaultEndpoint is called; the methods before it lay out the vtable.
+// NOLINTBEGIN(readability-identifier-naming,cppcoreguidelines-virtual-class-destructor)
 MIDL_INTERFACE("f8679f50-850a-41cf-9c72-430f290290c8")
 IPolicyConfig: public IUnknown {
 	virtual HRESULT STDMETHODCALLTYPE GetMixFormat() = 0;
@@ -70,6 +72,7 @@ IPolicyConfig: public IUnknown {
 	virtual HRESULT STDMETHODCALLTYPE SetDefaultEndpoint(PCWSTR deviceId, ERole role) = 0;
 	virtual HRESULT STDMETHODCALLTYPE SetEndpointVisibility() = 0;
 };
+// NOLINTEND(readability-identifier-naming,cppcoreguidelines-virtual-class-destructor)
 
 constexpr CLSID CLSID_POLICY_CONFIG_CLIENT =
     {0x870af99c, 0x171d, 0x4f9e, {0xaf, 0x0d, 0xe6, 0x3d, 0xf4, 0x0c, 0x2b, 0xc9}};
@@ -170,8 +173,7 @@ public:
 		return S_OK;
 	}
 
-	HRESULT STDMETHODCALLTYPE
-	OnPropertyValueChanged(LPCWSTR id, const PROPERTYKEY key) noexcept override {
+	HRESULT STDMETHODCALLTYPE OnPropertyValueChanged(LPCWSTR id, PROPERTYKEY key) noexcept override {
 		// Many other properties change all the time.
 		if (!sameKey(key, KEY_DEVICE_FRIENDLY_NAME) && !sameKey(key, KEY_DEVICE_DESC)
 		    && !sameKey(key, KEY_INTERFACE_FRIENDLY_NAME) && !sameKey(key, KEY_FORM_FACTOR))

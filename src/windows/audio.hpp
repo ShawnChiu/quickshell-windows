@@ -177,7 +177,7 @@ public:
 
 	[[nodiscard]] ObjectModel<AudioEndpoint>* endpoints() { return &this->mEndpoints; }
 
-	void setDefault(AudioEndpoint* endpoint, AudioFlow::Enum flow);
+	static void setDefault(AudioEndpoint* endpoint, AudioFlow::Enum flow);
 
 signals:
 	void defaultOutputChanged();
@@ -250,11 +250,11 @@ public:
 	}
 
 	static void setDefaultOutput(AudioEndpoint* endpoint) {
-		AudioService::instance()->setDefault(endpoint, AudioFlow::Output);
+		AudioService::setDefault(endpoint, AudioFlow::Output);
 	}
 
 	static void setDefaultInput(AudioEndpoint* endpoint) {
-		AudioService::instance()->setDefault(endpoint, AudioFlow::Input);
+		AudioService::setDefault(endpoint, AudioFlow::Input);
 	}
 
 signals:
