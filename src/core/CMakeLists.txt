@@ -58,7 +58,8 @@ qt_add_qml_module(quickshell-core
 )
 
 if (WIN32)
-	target_sources(quickshell-core PRIVATE desktopentry_win.cpp)
+	target_sources(quickshell-core PRIVATE desktopentry_win.cpp paths_win.cpp)
+	target_link_libraries(quickshell-core PRIVATE wtsapi32)
 endif()
 
 install_qml_module(quickshell-core)

@@ -42,6 +42,10 @@ public:
 	void linkRunDir();
 	void linkPathDir();
 	void createLock();
+#ifdef Q_OS_WIN
+	// Removes dead instances from earlier logon sessions, in paths_win.cpp.
+	void cleanRunDir();
+#endif
 
 	QDir shellDataDir();
 	QDir shellStateDir();

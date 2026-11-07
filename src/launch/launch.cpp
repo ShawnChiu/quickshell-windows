@@ -169,6 +169,9 @@ int launch(const LaunchArgs& args, char** argv) {
 #endif
 
 	QsPaths::init(shellId, pathId, pragmas.dataDir, pragmas.stateDir, pragmas.cacheDir);
+#ifdef Q_OS_WIN
+	QsPaths::instance()->cleanRunDir();
+#endif
 	QsPaths::instance()->linkRunDir();
 	QsPaths::instance()->linkPathDir();
 
