@@ -8,6 +8,7 @@
 #include <qlocalsocket.h>
 #include <qlogging.h>
 #include <qloggingcategory.h>
+#include <qnamespace.h>
 #include <qobject.h>
 
 #include "../core/generation.hpp"
