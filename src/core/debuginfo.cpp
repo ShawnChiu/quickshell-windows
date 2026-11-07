@@ -21,7 +21,7 @@
 #include "build.hpp"
 
 #ifdef Q_OS_WIN
-#include <cstdlib>
+#include <cstdlib>       // NOLINT(misc-include-cleaner)
 #define environ _environ // NOLINT
 #else
 extern char** environ; // NOLINT
