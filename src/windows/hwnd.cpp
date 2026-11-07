@@ -1,7 +1,6 @@
 #include "hwnd.hpp"
 
 #include <qtypes.h>
-
 #include <windows.h>
 
 namespace qs::windows {
