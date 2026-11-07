@@ -15,8 +15,10 @@
 // clang-format on
 
 #include <algorithm>
+#include <array>
 #include <cmath>
-#include <functional>
+#include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <utility>
 #include <vector>
@@ -29,13 +31,17 @@
 #include <qlogging.h>
 #include <qloggingcategory.h>
 #include <qnamespace.h>
+#include <qnumeric.h>
 #include <qobject.h>
 #include <qpainter.h>
 #include <qrect.h>
+#include <qrgb.h>
 #include <qstring.h>
 #include <qthreadpool.h>
 #include <qtimer.h>
+#include <qtmetamacros.h>
 #include <qtypes.h>
+#include <span>
 
 #include "../core/logcat.hpp"
 #include "wallpaper_blur.hpp"
@@ -82,13 +88,21 @@ struct Plane {
 	    , height(height)
 	    , data(static_cast<size_t>(width) * height * 3) {}
 
-	float* at(qint32 x, qint32 y) {
-		return &this->data[(static_cast<size_t>(y) * this->width + x) * 3];
+	std::span<float, 3> at(qint32 x, qint32 y) {
+		return std::span(this->data).subspan(this->index(x, y)).first<3>();
+	}
+
+	[[nodiscard]] std::span<const float, 3> at(qint32 x, qint32 y) const {
+		return std::span(this->data).subspan(this->index(x, y)).first<3>();
+	}
+
+	[[nodiscard]] size_t index(qint32 x, qint32 y) const {
+		return (static_cast<size_t>(y) * this->width + x) * 3;
 	}
 
 	// Bilinear, clamped to the edge, at normalized coordinates: a GL texture's LINEAR and
 	// CLAMP_TO_EDGE.
-	void sample(float u, float v, float* out) const {
+	void sample(float u, float v, std::span<float, 3> out) const {
 		auto fx = (u * static_cast<float>(this->width)) - 0.5f;
 		auto fy = (v * static_cast<float>(this->height)) - 0.5f;
 		auto x0f = std::floor(fx);
@@ -103,12 +117,12 @@ struct Plane {
 		auto y0 = clampY(static_cast<qint32>(y0f));
 		auto y1 = clampY(static_cast<qint32>(y0f) + 1);
 
-		const auto* p00 = &this->data[(static_cast<size_t>(y0) * this->width + x0) * 3];
-		const auto* p10 = &this->data[(static_cast<size_t>(y0) * this->width + x1) * 3];
-		const auto* p01 = &this->data[(static_cast<size_t>(y1) * this->width + x0) * 3];
-		const auto* p11 = &this->data[(static_cast<size_t>(y1) * this->width + x1) * 3];
+		auto p00 = this->at(x0, y0);
+		auto p10 = this->at(x1, y0);
+		auto p01 = this->at(x0, y1);
+		auto p11 = this->at(x1, y1);
 
-		for (auto c = 0; c != 3; c++) {
+		for (size_t c = 0; c != 3; c++) {
 			auto top = p00[c] + ((p10[c] - p00[c]) * tx);
 			auto bottom = p01[c] + ((p11[c] - p01[c]) * tx);
 			out[c] = top + ((bottom - top) * ty);
@@ -127,23 +141,25 @@ Plane downsample(const Plane& src, float offset) {
 	auto ox = 0.5f / static_cast<float>(dst.width) * offset;
 	auto oy = 0.5f / static_cast<float>(dst.height) * offset;
 
-	float s[3];
+	std::array<float, 3> s {};
 	for (auto y = 0; y != dst.height; y++) {
 		auto v = (static_cast<float>(y) + 0.5f) / static_cast<float>(dst.height);
 		for (auto x = 0; x != dst.width; x++) {
 			auto u = (static_cast<float>(x) + 0.5f) / static_cast<float>(dst.width);
-			auto* out = dst.at(x, y);
+			auto out = dst.at(x, y);
 
 			src.sample(u, v, s);
-			for (auto c = 0; c != 3; c++) out[c] = s[c] * 4;
+			for (size_t c = 0; c != 3; c++) out[c] = s[c] * 4;
 
-			const std::pair<float, float> corners[] = {{-ox, -oy}, {ox, -oy}, {-ox, oy}, {ox, oy}};
+			const std::array<std::pair<float, float>, 4> corners = {
+			    {{-ox, -oy}, {ox, -oy}, {-ox, oy}, {ox, oy}}
+			};
 			for (auto [dx, dy]: corners) {
 				src.sample(u + dx, v + dy, s);
-				for (auto c = 0; c != 3; c++) out[c] += s[c];
+				for (size_t c = 0; c != 3; c++) out[c] += s[c];
 			}
 
-			for (auto c = 0; c != 3; c++) out[c] /= 8;
+			for (size_t c = 0; c != 3; c++) out[c] /= 8;
 		}
 	}
 
@@ -157,7 +173,7 @@ Plane upsample(const Plane& src, qint32 width, qint32 height, float offset) {
 	auto ox = 0.5f / static_cast<float>(src.width) * offset;
 	auto oy = 0.5f / static_cast<float>(src.height) * offset;
 
-	const std::pair<std::pair<float, float>, float> taps[] = {
+	const std::array<std::pair<std::pair<float, float>, float>, 8> taps = {{
 	    {{-ox * 2, 0}, 1},
 	    {{ox * 2, 0}, 1},
 	    {{0, -oy * 2}, 1},
@@ -166,22 +182,22 @@ Plane upsample(const Plane& src, qint32 width, qint32 height, float offset) {
 	    {{ox, oy}, 2},
 	    {{-ox, -oy}, 2},
 	    {{ox, -oy}, 2},
-	};
+	}};
 
-	float s[3];
+	std::array<float, 3> s {};
 	for (auto y = 0; y != dst.height; y++) {
 		auto v = (static_cast<float>(y) + 0.5f) / static_cast<float>(dst.height);
 		for (auto x = 0; x != dst.width; x++) {
 			auto u = (static_cast<float>(x) + 0.5f) / static_cast<float>(dst.width);
-			auto* out = dst.at(x, y);
+			auto out = dst.at(x, y);
 			out[0] = out[1] = out[2] = 0;
 
 			for (const auto& [d, weight]: taps) {
 				src.sample(u + d.first, v + d.second, s);
-				for (auto c = 0; c != 3; c++) out[c] += s[c] * weight;
+				for (size_t c = 0; c != 3; c++) out[c] += s[c] * weight;
 			}
 
-			for (auto c = 0; c != 3; c++) out[c] /= 12;
+			for (size_t c = 0; c != 3; c++) out[c] /= 12;
 		}
 	}
 
@@ -249,12 +265,14 @@ QImage blurWallpaper(const QImage& wallpaper, const BlurParams& params) {
 
 	auto source = Plane(width, height);
 	for (auto y = 0; y != height; y++) {
-		const auto* line = reinterpret_cast<const QRgb*>(wallpaper.constScanLine(y)); // NOLINT
+		const auto* scanLine = reinterpret_cast<const QRgb*>(wallpaper.constScanLine(y)); // NOLINT
+		auto line = std::span(scanLine, static_cast<size_t>(width));
 		for (auto x = 0; x != width; x++) {
-			auto* out = source.at(x, y);
-			out[0] = static_cast<float>(qRed(line[x])) / 255;
-			out[1] = static_cast<float>(qGreen(line[x])) / 255;
-			out[2] = static_cast<float>(qBlue(line[x])) / 255;
+			auto out = source.at(x, y);
+			auto pixel = line[static_cast<size_t>(x)];
+			out[0] = static_cast<float>(qRed(pixel)) / 255;
+			out[1] = static_cast<float>(qGreen(pixel)) / 255;
+			out[2] = static_cast<float>(qBlue(pixel)) / 255;
 		}
 	}
 
@@ -276,10 +294,11 @@ QImage blurWallpaper(const QImage& wallpaper, const BlurParams& params) {
 
 	auto result = QImage(width, height, QImage::Format_ARGB32_Premultiplied);
 	for (auto y = 0; y != height; y++) {
-		auto* line = reinterpret_cast<QRgb*>(result.scanLine(y)); // NOLINT
+		auto* scanLine = reinterpret_cast<QRgb*>(result.scanLine(y)); // NOLINT
+		auto line = std::span(scanLine, static_cast<size_t>(width));
 		for (auto x = 0; x != width; x++) {
-			const auto* p = &blurred.data[(static_cast<size_t>(y) * width + x) * 3];
-			float rgb[3] = {p[0], p[1], p[2]};
+			auto p = blurred.at(x, y);
+			std::array<float, 3> rgb = {p[0], p[1], p[2]};
 
 			if (saturation != 1) {
 				auto luma = (rgb[0] * 0.2126f) + (rgb[1] * 0.7152f) + (rgb[2] * 0.0722f);
@@ -298,7 +317,7 @@ QImage blurWallpaper(const QImage& wallpaper, const BlurParams& params) {
 				return static_cast<int>(std::round(std::clamp(v, 0.0f, 1.0f) * 255));
 			};
 
-			line[x] = qRgb(channel(rgb[0]), channel(rgb[1]), channel(rgb[2]));
+			line[static_cast<size_t>(x)] = qRgb(channel(rgb[0]), channel(rgb[1]), channel(rgb[2]));
 		}
 	}
 
@@ -514,7 +533,9 @@ void WallpaperBlurService::Native::draw(Monitor& monitor) {
 			);
 			monitor.source = monitor.surface.as<wuc::ICompositionSurface>();
 		} else if (monitor.surface.Size() != size) {
-			monitor.surface.Resize({static_cast<int32_t>(size.Width), static_cast<int32_t>(size.Height)});
+			monitor.surface.Resize(
+			    {.Width = static_cast<int32_t>(size.Width), .Height = static_cast<int32_t>(size.Height)}
+			);
 		}
 
 		auto interop = monitor.surface.as<abi_wuc::ICompositionDrawingSurfaceInterop>();

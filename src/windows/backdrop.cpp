@@ -99,10 +99,8 @@ struct D2DEffect
 		return S_OK;
 	}
 
-	HRESULT __stdcall GetProperty(
-	    UINT index,
-	    ABI::Windows::Foundation::IPropertyValue** value
-	) noexcept override {
+	HRESULT __stdcall
+	GetProperty(UINT index, ABI::Windows::Foundation::IPropertyValue** value) noexcept override {
 		if (index >= this->properties.size()) return E_INVALIDARG;
 		*value = this->properties[index].as<ABI::Windows::Foundation::IPropertyValue>().detach();
 		return S_OK;
@@ -113,10 +111,8 @@ struct D2DEffect
 		return S_OK;
 	}
 
-	HRESULT __stdcall GetSource(
-	    UINT index,
-	    abi_wge::IGraphicsEffectSource** source
-	) noexcept override {
+	HRESULT __stdcall
+	GetSource(UINT index, abi_wge::IGraphicsEffectSource** source) noexcept override {
 		if (index != 0) return E_INVALIDARG;
 		*source = this->source.as<abi_wge::IGraphicsEffectSource>().detach();
 		return S_OK;
@@ -268,15 +264,14 @@ BlurBackdrop::Native::windowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 	switch (msg) {
 	case WM_NCHITTEST: return HTTRANSPARENT;
 	case WM_MOUSEACTIVATE: return MA_NOACTIVATE;
-	case WM_SETTINGCHANGE:
+	case WM_SETTINGCHANGE: {
 		// Sent when "Transparency effects" or the app theme changes.
-		if (backdrop && lParam != 0
-		    && std::wcscmp(reinterpret_cast<const wchar_t*>(lParam), L"ImmersiveColorSet")
-		           == 0) // NOLINT
-		{
+		const auto* setting = reinterpret_cast<const wchar_t*>(lParam); // NOLINT
+		if (backdrop && setting && std::wcscmp(setting, L"ImmersiveColorSet") == 0) {
 			backdrop->updateEffects();
 		}
 		break;
+	}
 	case WM_POWERBROADCAST:
 		if (backdrop && wParam == PBT_POWERSETTINGCHANGE) {
 			const auto* setting = reinterpret_cast<const POWERBROADCAST_SETTING*>(lParam); // NOLINT
