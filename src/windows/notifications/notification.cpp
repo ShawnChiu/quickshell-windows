@@ -1,4 +1,5 @@
 #include "notification.hpp"
+#include <utility>
 
 #include <qcontainerfwd.h>
 #include <qimage.h>

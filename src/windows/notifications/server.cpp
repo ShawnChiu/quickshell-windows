@@ -86,7 +86,7 @@ void NotificationServer::deleteNotification(
 	this->mNotifications.removeObject(notification);
 	this->idMap.remove(notification->toastId());
 
-	if (removeToast) ToastService::instance()->remove(notification->toastId());
+	if (removeToast) ToastService::remove(notification->toastId());
 	notification->retainedDestroy();
 }
 
