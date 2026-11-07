@@ -1,0 +1,32 @@
+# clang-tidy findings in upstream code that only the Windows build reports, as
+# scripts/lint-windows.ps1 prints them without the line number. Each has its
+# reason above it.
+
+# gpuInfo only uses it on Linux.
+src/core/debuginfo.cpp: [misc-include-cleaner] included header qscopeguard.h is not used directly
+
+# Reported only in the Windows build.
+src/core/imageprovider.cpp: [bugprone-exception-escape] an exception may be thrown in function '~QsImageHandle' which should not throw exceptions
+
+# copyFileData's read and write loop replaces sendfile on Windows.
+src/core/logging.cpp: [bugprone-implicit-widening-of-multiplication-result] performing an implicit widening conversion to type 'size_t' (aka 'unsigned long long') of a multiplication performed in type 'int'
+src/core/logging.cpp: [misc-include-cleaner] no header providing "std::min" is directly included
+
+# Unused in the Windows build.
+src/core/paths.cpp: [misc-include-cleaner] included header cstdio is not used directly
+
+# Reported only in the Windows build.
+src/core/types.cpp: [bugprone-narrowing-conversions] narrowing conversion from 'Int' (aka 'unsigned int') to signed type 'int' is implementation-defined
+
+# stdout comes from the Windows SDK, whose headers are ignored.
+src/io/ipccomm.cpp: [misc-include-cleaner] no header providing "stdout" is directly included
+src/launch/command.cpp: [misc-include-cleaner] no header providing "stdout" is directly included
+
+# errno is only used when daemonizing on Linux.
+src/launch/command.cpp: [misc-include-cleaner] included header cerrno is not used directly
+
+# Only the crash handler uses them, and Windows builds without it.
+src/launch/main.cpp: [misc-include-cleaner] included header qdatetime.h is not used directly
+src/launch/main.cpp: [misc-include-cleaner] included header instanceinfo.hpp is not used directly
+src/launch/main.cpp: [misc-include-cleaner] included header logging.hpp is not used directly
+src/launch/main.cpp: [misc-include-cleaner] included header paths.hpp is not used directly

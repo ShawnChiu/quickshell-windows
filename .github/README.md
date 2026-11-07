@@ -34,10 +34,12 @@ media, the system tray and notifications.
 ## Building
 
 Install the tools below, and Qt 6.8 or newer for MSVC 2022 64-bit with Qt Shader Tools from the
-[Qt Online Installer](https://www.qt.io/download-qt-installer-oss). LLVM must be 19 or newer.
+[Qt Online Installer](https://www.qt.io/download-qt-installer-oss). LLVM must be the version in
+[llvm-version](llvm-version).
 
 ```powershell
-winget install Kitware.CMake Ninja-build.Ninja LLVM.LLVM
+winget install Kitware.CMake Ninja-build.Ninja
+winget install LLVM.LLVM --version 21.1.7
 winget install Microsoft.VisualStudio.2022.BuildTools --override "--wait --passive --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"
 ```
 

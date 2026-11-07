@@ -62,6 +62,9 @@ contributions are accepted too. Whatever tools you used:
   `Quickshell.Windows` types in their header and in
   [src/windows/module.md](../src/windows/module.md).
 - Follow upstream's [HACKING.md](../HACKING.md) for code style (`clang-format`, `clang-tidy`).
+  On Windows, run [scripts/lint-windows.ps1](../scripts/lint-windows.ps1), which checks the whole
+  tree as CI does. A clang-tidy finding in upstream code that only the Windows build hits goes in
+  [tidy-baseline.txt](tidy-baseline.txt), with the reason on the line above it.
 - One change per pull request.
 
 ### Branches and commits

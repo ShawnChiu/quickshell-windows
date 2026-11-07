@@ -66,6 +66,8 @@ CheckOptions:
   readability-identifier-naming.VariableCase: camelBack
 
   misc-const-correctness.WarnPointersAsPointers: false
+  # the windows sdk is included through windows.h
+  misc-include-cleaner.IgnoreHeaders: '.*[/\\]Windows Kits[/\\].*'
 
   # does not appear to work
   readability-operators-representation.BinaryOperators: '&&;&=;&;|;~;!;!=;||;|=;^;^='

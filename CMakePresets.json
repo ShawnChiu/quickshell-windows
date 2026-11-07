@@ -14,6 +14,17 @@
 				"CMAKE_LINKER": "lld-link",
 				"CMAKE_POLICY_VERSION_MINIMUM": "3.5"
 			}
+		},
+		{
+			"name": "windows-lint",
+			"inherits": "windows",
+			"displayName": "Windows lint (clang-cl)",
+			"description": "Build for scripts/lint-windows.ps1",
+			"binaryDir": "${sourceDir}/build/lint",
+			"cacheVariables": {
+				"NO_PCH": "ON",
+				"CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+			}
 		}
 	]
 }
