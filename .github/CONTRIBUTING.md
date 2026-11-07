@@ -51,7 +51,7 @@ contributions are accepted too. Whatever tools you used:
 
 - **Test it on Windows** and say what you tested on (Windows version, single or multiple
   monitors, DPI scaling, window manager if relevant). Untested changes may still be merged, but
-  are marked "Untested" in [PORTING.md](PORTING.md). CI builds on Linux only.
+  are marked "Untested" in [PORTING.md](PORTING.md). CI only builds and lints.
 - **You are responsible for it.** Be ready to answer questions about what the change does and
   why. The pull request description may be written with AI, but you must have checked that it
   is accurate. Pull requests opened by agents with no human following up will be closed.

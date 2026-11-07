@@ -1,0 +1,37 @@
+name: Windows
+on: [push, pull_request, workflow_dispatch]
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: windows-2025
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install LLVM
+        shell: pwsh
+        run: |
+          $version = (Get-Content .github/llvm-version -Raw).Trim()
+          $installer = "$env:RUNNER_TEMP\llvm.exe"
+          Invoke-WebRequest "https://github.com/llvm/llvm-project/releases/download/llvmorg-$version/LLVM-$version-win64.exe" -OutFile $installer
+          7z x -y "-o$env:RUNNER_TEMP\llvm" $installer | Out-Null
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+
+      - uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.10.3'
+          arch: win64_msvc2022_64
+          modules: qtshadertools
+          cache: true
+
+      - uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Lint
+        shell: pwsh
+        run: |
+          $env:PATH = "$env:RUNNER_TEMP\llvm\bin;$env:PATH"
+          cmake --preset windows-lint "-DCMAKE_PREFIX_PATH=$env:QT_ROOT_DIR"
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          ./scripts/lint-windows.ps1
