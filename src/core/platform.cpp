@@ -1,8 +1,6 @@
 #include "platform.hpp"
 
-#include <qdir.h>
 #include <qfile.h>
-#include <qfileinfo.h>
 #include <qstring.h>
 #include <qtypes.h>
 
@@ -15,6 +13,8 @@
 
 #include <io.h>
 #include <qcoreapplication.h>
+#include <qdir.h>
+#include <qfileinfo.h>
 #include <qlogging.h>
 #include <qstandardpaths.h>
 #include <qtenvironmentvariables.h>
@@ -22,7 +22,8 @@
 #include <winioctl.h>
 #else
 #include <cerrno>
-#include <csignal>
+#include <csignal> // NOLINT
+#include <cstdio>
 
 #include <fcntl.h>
 #include <sys/mman.h>
@@ -414,7 +415,9 @@ void removeDirLink(const QString& link) { QFile::remove(link); }
 
 QString defaultRuntimeDir() { return QString("/run/user/%1").arg(getuid()); }
 
-bool sendSignal(qint64 pid, int signal) { return kill(static_cast<pid_t>(pid), signal) == 0; }
+bool sendSignal(qint64 pid, int signal) {
+	return kill(static_cast<pid_t>(pid), signal) == 0; // NOLINT
+}
 
 #endif // Q_OS_WIN
 

@@ -10,8 +10,10 @@
 #include <qqmlinfo.h>
 #include <qtmetamacros.h>
 #include <qtypes.h>
-#include <qurl.h>
 #include <qvariant.h>
+#ifdef Q_OS_WIN
+#include <qurl.h>
+#endif
 
 #include "../core/generation.hpp"
 #include "../core/platform.hpp"

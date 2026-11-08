@@ -1,6 +1,5 @@
 #include "paths.hpp"
 #include <cerrno>
-#include <cstdio>
 #include <tuple>
 #include <utility>
 
@@ -392,7 +391,7 @@ bool QsPaths::checkLock(const QString& path, InstanceLockInfo* info, bool allowD
 
 		// Platforms that can't report the lock holder fall back to the pid the instance recorded.
 		if (isLocked && lockPid == -1) lockPid = info->instance.pid;
-		info->pid = isLocked ? static_cast<pid_t>(lockPid) : -1;
+		info->pid = isLocked ? static_cast<pid_t>(lockPid) : -1; // NOLINT(misc-include-cleaner)
 	}
 
 	return true;
