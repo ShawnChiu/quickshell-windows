@@ -19,7 +19,9 @@
 #include <qthreadpool.h>
 #include <qtmetamacros.h>
 #include <qtypes.h>
+#ifdef Q_OS_WIN
 #include <qurl.h>
+#endif
 
 #include "../core/logcat.hpp"
 #include "../core/util.hpp"
