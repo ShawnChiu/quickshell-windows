@@ -31,10 +31,12 @@
 #include "../core/instanceinfo.hpp"
 #include "../core/logging.hpp"
 #include "../core/paths.hpp"
-#include "../core/platform.hpp"
 #include "../io/ipccomm.hpp"
 #include "../ipc/ipc.hpp"
 #include "launch_p.hpp"
+#ifdef Q_OS_WIN
+#include "../core/platform.hpp"
+#endif
 
 namespace qs::launch {
 

@@ -146,7 +146,7 @@ int launch(const LaunchArgs& args, char** argv) {
 	    .shellId = shellId,
 	    .appId = appId,
 	    .launchTime = qs::Common::LAUNCH_TIME,
-	    .pid = static_cast<pid_t>(QCoreApplication::applicationPid()),
+	    .pid = static_cast<pid_t>(QCoreApplication::applicationPid()), // NOLINT(misc-include-cleaner)
 	    .display = getDisplayConnection(),
 	};
 
