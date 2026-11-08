@@ -15,11 +15,13 @@
 #include <qpair.h>
 #include <qproperty.h>
 #include <qscopeguard.h>
-#include <qset.h>
 #include <qtenvironmentvariables.h>
 #include <qthreadpool.h>
 #include <qtmetamacros.h>
 #include <ranges>
+#ifdef Q_OS_WIN
+#include <qset.h>
+#endif
 
 #include "../io/processcore.hpp"
 #include "desktopentrymonitor.hpp"
