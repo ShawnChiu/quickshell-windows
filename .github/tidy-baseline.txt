@@ -12,9 +12,6 @@ src/core/imageprovider.cpp: [bugprone-exception-escape] an exception may be thro
 src/core/logging.cpp: [bugprone-implicit-widening-of-multiplication-result] performing an implicit widening conversion to type 'size_t' (aka 'unsigned long long') of a multiplication performed in type 'int'
 src/core/logging.cpp: [misc-include-cleaner] no header providing "std::min" is directly included
 
-# Unused in the Windows build.
-src/core/paths.cpp: [misc-include-cleaner] included header cstdio is not used directly
-
 # Reported only in the Windows build.
 src/core/types.cpp: [bugprone-narrowing-conversions] narrowing conversion from 'Int' (aka 'unsigned int') to signed type 'int' is implementation-defined
 
